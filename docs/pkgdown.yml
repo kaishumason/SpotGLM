@@ -1,0 +1,9 @@
+pandoc: 3.1.1
+pkgdown: 2.1.1
+pkgdown_sha: ~
+articles:
+  Intro_to_SpotGLM: Intro_to_SpotGLM.html
+  Spatial_ATAC_analysis: Spatial_ATAC_analysis.html
+  Spatial_Long_Read_analysis: Spatial_Long_Read_analysis.html
+  Visium_analysis: Visium_analysis.html
+last_built: 2025-03-30T22:39Z

@@ -7,7 +7,7 @@
 #'
 #' @return A named list of numeric vectors with q-values corresponding to input p-values.
 #'
-#' @export
+#' @keywords internal
 compute_qvals <- function(pval_list) {
   result <- vector("list", length(pval_list))
   names(result) <- names(pval_list)
@@ -43,7 +43,7 @@ compute_qvals <- function(pval_list) {
 #'
 #' @return A named list of p-values for each model in the input list.
 #'
-#' @export
+#' @keywords internal
 compute_contrast <- function(input_list,cell_type,effect_names,beta_name = "beta_est", 
                              covariance_name = "vcov",
                              sided = 2, 
@@ -132,7 +132,7 @@ compute_contrast <- function(input_list,cell_type,effect_names,beta_name = "beta
 #'
 #' @return A named list of p-values for each model in the input list.
 #'
-#' @export
+#' @keywords internal
 compute_pvals <- function(input_list,cell_type,effect_name,beta_name = "beta_est", 
                           standard_error_name = "stand_err_mat",
                           sided = 2, 
@@ -210,6 +210,9 @@ compute_significance <- function(input_list,cell_type,effect_name,beta_name = "b
                                  standard_error_name = "stand_err_mat", 
                                  sided = 2, 
                                  direction = "pos") {
+  if(is.null(names(input_list))){
+    names(input_list) = paste0("Test_",c(1:length(input_list)))
+  }
   
   #Step 1: Compute pvalues
   pvals = compute_pvals(input_list = input_list,cell_type = cell_type,effect_name = effect_name, beta_name = beta_name,
@@ -222,6 +225,10 @@ compute_significance <- function(input_list,cell_type,effect_name,beta_name = "b
   result_mat <- do.call(rbind, lapply(seq_along(pvals), function(i) {
     data.frame(
       name = names(pvals)[i],
+      cell_type = cell_type,
+      effect = effect_name,
+      sided = sided,
+      direction = direction,
       pval = pvals[[i]],
       qval = qvals[[i]],
       stringsAsFactors = FALSE
@@ -252,6 +259,9 @@ compute_contrast_significance = function(input_list,cell_type,effect_names,beta_
                                          covariance_name = "vcov", 
                                          sided = 2, 
                                          direction = "pos") {
+  if(is.null(names(input_list))){
+    names(input_list) = paste0("Test_",c(1:length(input_list)))
+  }
   
   #Step 1: Compute pvalues
   pvals = compute_contrast(input_list = input_list,cell_type = cell_type,effect_names = effect_names,beta_name = beta_name,
@@ -264,6 +274,11 @@ compute_contrast_significance = function(input_list,cell_type,effect_names,beta_
   result_mat <- do.call(rbind, lapply(seq_along(pvals), function(i) {
     data.frame(
       name = names(pvals)[i],
+      cell_type = cell_type,
+      effect_1 = effect_names[1],
+      effect_2 = effect_names[2],
+      sided = sided,
+      direction = direction,
       pval = pvals[[i]],
       qval = qvals[[i]],
       stringsAsFactors = FALSE

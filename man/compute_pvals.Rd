@@ -35,3 +35,4 @@ A named list of p-values for each model in the input list.
 \description{
 Computes Z-scores and p-values for a single covariate in a specific cell type.
 }
+\keyword{internal}

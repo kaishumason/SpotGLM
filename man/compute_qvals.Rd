@@ -15,3 +15,4 @@ A named list of numeric vectors with q-values corresponding to input p-values.
 \description{
 Applies Benjamini-Hochberg correction across a list of p-value vectors and reconstructs q-values in the same structure.
 }
+\keyword{internal}

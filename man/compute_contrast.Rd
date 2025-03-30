@@ -35,3 +35,4 @@ A named list of p-values for each model in the input list.
 \description{
 Computes Z-scores and p-values for contrasts between two covariates within a single cell type.
 }
+\keyword{internal}

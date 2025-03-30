@@ -1,5 +1,5 @@
 ---
-title: "Visium_analysis"
+title: "Visium Analysis"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Visium_analysis}
@@ -14,26 +14,41 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r setup}
+We must load the following packages
+```
 library(spotglm)
 library(ggplot2)
 library(patchwork)
 library(dplyr)
 ```
 # Overview
-In this vignette we will go through a typical analysis using spotGLM on a Visium dataset. The dataset comes from a liver colorectal cancer patient. In the dataset, we identify 6 major cell types, hepatocytes, macrophages/myeloid, fibroblasts/stromal, and two subclones of the tumor found via [clonalscope](https://www.biorxiv.org/content/10.1101/2022.07.05.498882v2). For each spot we summarize its neighborhood/niche by computing a weighted sum of deconvolutions with closer spots having more weight. We will then fit a spotGLM to identify cell type specifici niche-differential genes. 
+In this vignette we will go through a typical analysis using spotGLM on a Visium dataset. The dataset comes from a liver colorectal cancer patient. In the dataset, we identify 6 major cell types, hepatocytes, macrophages/myeloid, fibroblasts/stromal, and two subclones of the tumor found via [clonalscope](https://www.biorxiv.org/content/10.1101/2022.07.05.498882v2). For each spot we summarize its neighborhood/niche by computing a weighted sum of deconvolutions with closer spots having more weight. We will then fit a spotGLM to identify cell type specific niche-differential genes. 
 
 
 ## Load Data
 
-```{r}
+We first load the data. 
+
+# Reading in Data
+First we read in the merfish data using the function 'read merfish'. This functions returns a list with the following
+
+<details>
+  <summary>Output</summary>
+  + `coords`: Coordinate matrix. Of dimension 3826 by 2
++ `niche`: The niche vector for each spot. Of dimension 3826 by 7
++ `deconv`: The deconvolution of each spot. of dimension 3826 by 7
++ `counts`: The counts matrix for 2000 genes. Of dimension 3826 by 2000
++ `library size`: The library size of each spot. A vector of length 3826
+</details>
+
+```
 data = spotglm::read_visium()
 ```
 
 ## Example of Covariate 
 We summarize each spot's niche into a vector of length $T$ where $T$ is the number of cell types in the sample. This covariate is called an effective niche.Without going into too much detail, the larger the covariate, the more the corresponding cell type is in the neighborhood of that spot. For example, we see that the tumor subclone 1 niche covariate is high in regions where the tumor deconvolution is also high. 
 
-```{r,fig.width=6, fig.height=6}
+```
 # Prepare data for plotting
 plot_df_deconv <- data.frame(
   x = data$coords[, 1],
@@ -63,16 +78,11 @@ p2 <- ggplot(plot_df_niche, aes(x = x, y = y, color = subclone_1)) +
 
 # Display side by side
 ```
-```{r,fig.width=6, fig.height=6}
-p1
+```
+p1 + p2
 
 ```
 
-
-```{r,fig.width=6, fig.height=6}
-p2
-
-```
 
 
 ## Perform SpotGLM (Approx 10 minutes)
@@ -85,10 +95,10 @@ For a spot $s$, its gene expression is modeled as the sum of the cells that make
 
 $$Y_{s,g} \sim Pois(\mathbb{E}[Y_{s,g}|X_{s}])$$
 $$\mathbb{E}[Y_{s,g}|X_{i}] = \log(L_s) + \sum_{t} \pi_{s,t}\exp(X_s\beta^{t}_g) $$
-Here $L_s$ is the library size of spot $s$ and $\pi_{s,t}$ is the deconvolution estimate for cell type $t$ in spot $s$. This model can be fit using a spotGLM 
+Here $L_s$ is the library size of spot $s$ and $\pi_{s,t}$ is the deconvolution estimate for cell type $t$ in spot $s$. This model can be fit using a spotGLM. to do this we use the "run model" function. This function takes several arguments, the most important of which are below
+This model can be fit using a `spotGLM`. To do this, we use the `run_model()` function. 
 
-
-```{r}
+```
 num_genes = ncol(data$counts)
 res = vector("list",num_genes)
 t1 = Sys.time()
@@ -108,8 +118,8 @@ names(res) = colnames(data$counts)
 
 
 ### Downstream Analysis: Determining Niche Differential Genes 
-After fitting the spotGLM we can evaluate which genes as (t,t') niche differential. In this case we get pvalues/qvalues for testing if genes are (fibroblast,subclone 1) niche differential. We can do this using the "compute_significance" function. We set side = 1 and direction = "pos" so that the niche differential genes correspond to those that are upregulated in fibroblasts when in the presence of tumor subclone 1.
-```{r}
+After fitting the spotGLM we can evaluate which genes as (t,t') niche differential. In this case we get pvalues/qvalues for testing if genes are (fibroblast,subclone 1) niche differential. We can do this using the `compute_significance()` function. We set side = 1 and direction = "pos" so that the niche differential genes correspond to those that are upregulated in fibroblasts when in the presence of tumor subclone 1.
+```
 #get significant genes
 sig_genes = compute_significance(input_list = res,cell_type = "stromal",
                                  effect_name = "subclone_1",
@@ -124,12 +134,12 @@ print(rownames(sig_genes)[sig_genes$qval < 0.05])
 ### Downstream Analysis: Determining Niche Differential Marker Genes
 We can also perform a contrast test to see if a gene is niche-marker gene. A niche marker gene for a cell type $t$ is one in which 
 $$\beta^{t}_{t_1,g} \neq \beta^{t}_{t_2,g}$$
-that is that we can differentiate whether cell type $t$ is near a niche enriched by cell type $t_1$ or cell type $t_2$ by looking at its gene expression for gene $g$. We can do this using the "compute_contrast_significance" function. Here we are finding niche marker genes in fibroblasts when near tumor subclone 1 vs tumor subclone 2. We set side = 1 and direction = "pos" so that the genes correspond to those that are upregulated in fibroblasts when in the presence of tumor subclone 1 vs when near tumor subclone 2.
+that is that we can differentiate whether cell type $t$ is near a niche enriched by cell type $t_1$ or cell type $t_2$ by looking at its gene expression for gene $g$. We can do this using the `compute_contrast_significance()` function. Here we are finding niche marker genes in fibroblasts when near tumor subclone 1 vs tumor subclone 2. We set side = 1 and direction = "pos" so that the genes correspond to those that are upregulated in fibroblasts when in the presence of tumor subclone 1 vs when near tumor subclone 2.
 
 
 
-```{r}
-#comupute constrast test
+```
+#compute contrast test
 sig_genes = compute_contrast_significance(input_list = res,
                                     cell_type = "stromal",
                                     effect_names = c("subclone_1","subclone_2"),
@@ -148,7 +158,7 @@ print(rownames(sig_genes)[sig_genes$qval < 0.05])
 Note that ISG15 is both a (fibroblast,subclone 1) niche differential gene as well as a niche marker gene. If we plot the expression of ISG15 we see this visually. The fibroblasts in the subclone 2 niche express much less ISG15 than that in the subclone 1 niche. Additionally, the non tumor region ("other) shows very little expression of ISG15. 
 
 
-```{r,fig.width=4, fig.height=4}
+```
 gene <- "ISG15"
 
 # Expression clipping
@@ -179,7 +189,8 @@ p1 <- ggplot(df1, aes(x = x, y = y, color = gene)) +
   )
 
 # === Plot 2: Majority subclones ===
-majority_subclone <- colnames(data$deconv)[max.col(data$deconv, ties.method = "first")]
+majority_subclone <- colnames(data$deconv)[max.col(data$deconv,
+                                                   ties.method = "first")]
 
 df2 <- data.frame(
   x = data$coords[, 1],
@@ -221,28 +232,16 @@ p3 <- ggplot(df3, aes(x = x, y = y, color = stromal)) +
   labs(title = "Stromal Proportion", color = "Stromal")
 
 # === Combine all plots ===
-
-
-```
-
-```{r,fig.width=6, fig.height=6}
 p1
-```
-
-```{r,fig.width=6, fig.height=6}
-p2 
-```
-
-```{r,fig.width=6, fig.height=6}
+p2
 p3
+
 ```
-
-
 
 
 Note that COL4A1 is a (fibroblast,subclone 1) niche differential gene but not niche marker gene. If we plot the expression of COL4A1 we see this visually. 
 
-```{r,fig.width=4, fig.height=4}
+```
 gene <- "COL4A1"
 
 # Expression clipping
@@ -273,7 +272,8 @@ p1 <- ggplot(df1, aes(x = x, y = y, color = gene)) +
   )
 
 # === Plot 2: Majority subclones ===
-majority_subclone <- colnames(data$deconv)[max.col(data$deconv, ties.method = "first")]
+majority_subclone <- colnames(data$deconv)[max.col(data$deconv,
+                                                   ties.method = "first")]
 
 df2 <- data.frame(
   x = data$coords[, 1],
@@ -315,25 +315,10 @@ p3 <- ggplot(df3, aes(x = x, y = y, color = stromal)) +
   labs(title = "Stromal Proportion", color = "Stromal")
 
 # === Combine all plots ===
-```
-
-```{r,fig.width=6, fig.height=6}
 p1
-```
-
-```{r,fig.width=6, fig.height=6}
-p2 
-```
-
-```{r,fig.width=6, fig.height=6}
+p2
 p3
 ```
-
-
-
-
-
-
 
 
 

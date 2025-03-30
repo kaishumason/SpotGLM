@@ -2,7 +2,7 @@
 % Please edit documentation in R/glm_extension_adam.R
 \name{run_spot_glm_windows}
 \alias{run_spot_glm_windows}
-\title{Parallelized Spot-GLM Model Fitting}
+\title{Parallelized Spot-GLM Model Fitting (Windows)}
 \usage{
 run_spot_glm_windows(
   Y,
@@ -39,47 +39,63 @@ run_spot_glm_windows(
 \item{family}{The GLM family to use. One of: \code{"spot gaussian"}, \code{"spot poisson"},
 \code{"spot negative binomial"}, or \code{"spot binomial"}.}
 
-\item{beta_0}{Optional initial beta matrix (covariates × cell types).}
+\item{beta_0}{Optional initial coefficient matrix (covariates × cell types).}
 
-\item{fix_coef}{Optional logical matrix (covariates × cell types) indicating which coefficients to fix.}
+\item{fix_coef}{Optional logical matrix indicating which coefficients to fix (same dimensions as \code{beta_0}).}
 
-\item{offset}{Optional offset vector (length equal to number of spots).}
+\item{offset}{Optional numeric vector (length equal to number of spots).}
 
-\item{initialization}{Method used for initializing coefficients: \code{"intercept"} or \code{"full"}.}
+\item{initialization}{Coefficient initialization method: \code{"intercept"} or \code{"full"}.}
 
-\item{G}{Maximum chunk size in gigabytes (used to control memory usage).}
+\item{G}{Maximum chunk size (in GB) to control memory usage during parallelization.}
 
 \item{num_cores}{Number of CPU cores to use in parallel.}
 
-\item{min_deconv}{Minimum required deconvolution value for a spot to be considered informative.}
+\item{min_deconv}{Minimum required deconvolution value per spot.}
 
-\item{min_freq}{Minimum frequency for a covariate to be retained in a model.}
+\item{min_freq}{Minimum frequency for a covariate to be retained in the model.}
 
-\item{CT}{Optional vector of dominant cell types per spot (used in initialization).}
+\item{CT}{Optional vector of dominant cell types per spot.}
 
-\item{weights}{Optional matrix of observation-level weights (spots × genes).}
+\item{weights}{Optional observation-level weight matrix (spots × genes).}
 
-\item{ct_cov_weights}{Optional matrix of cell-type–specific weights per gene (cell types × genes).}
+\item{ct_cov_weights}{Optional cell-type-specific weight matrix (cell types × genes).}
 
-\item{learning_rate}{Initial learning rate for optimization.}
+\item{n_epochs}{Number of training epochs.}
 
-\item{max_diff}{Convergence threshold on likelihood improvement.}
+\item{batch_size}{Size of each mini-batch.}
 
-\item{intercept_col}{Optional index of the intercept column in \code{X}, if it exists.}
+\item{learning_rate}{Initial learning rate.}
 
-\item{max_gd_steps}{Maximum number of gradient descent steps.}
+\item{max_diff}{Convergence threshold based on likelihood improvement ratio.}
+
+\item{improvement_threshold}{Minimum improvement ratio between epochs.}
+
+\item{max_conv}{Number of low-improvement epochs before stopping.}
+
+\item{intercept_col}{Optional column index in \code{X} representing the intercept.}
 }
 \value{
-A named list of model results (one per gene), where each element contains the estimated
-coefficients, standard errors, dispersion, likelihood, and convergence diagnostics.
+A named list of model results (one per gene), each containing:
+\describe{
+\item{beta_est}{Estimated coefficients.}
+\item{stand_err_mat}{Standard error matrix.}
+\item{disp}{Dispersion estimate (if applicable).}
+\item{likelihood}{Final log-likelihood.}
+\item{converged}{Convergence status.}
+\item{niter}{Number of epochs run.}
+\item{vcov}{Variance-covariance matrix.}
+\item{fixed_coef}{Final fixed coefficients matrix.}
+}
 }
 \description{
-Applies Spot-GLM to multiple responses(e.g. genes) in parallel, using memory-efficient chunking and
-multicore processing via the \code{foreach} and \code{doParallel} packages.
+Fits a Spot-GLM model for multiple response variables (e.g., genes) in parallel using \code{foreach} and
+\code{doParallel}. Optimized for Windows systems where \code{mclapply} is not available.
 }
 \details{
-This function splits the gene expression matrix \code{y} into chunks based on estimated memory usage,
-then fits the Spot-GLM model in parallel across each gene using multiple cores.
+This function splits the gene expression matrix into memory-safe chunks,
+then evaluates each chunk in parallel using \code{foreach} and \code{doParallel}.
+For Mac/Linux, use \code{\link{run_spot_glm_mac}}.
 
-External packages used inside the parallel workers include: \code{Matrix}, \code{MASS}, and \code{LaplacesDemon}.
+External dependencies include \code{Matrix}, \code{MASS}, \code{LaplacesDemon}.
 }

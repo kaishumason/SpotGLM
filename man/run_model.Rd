@@ -2,7 +2,7 @@
 % Please edit documentation in R/glm_extension_adam.R
 \name{run_model}
 \alias{run_model}
-\title{Run Spot-GLM Model with Initialization and Optimization}
+\title{Fit a Spatial GLM with Initialization and Optimization}
 \usage{
 run_model(
   y,
@@ -29,44 +29,65 @@ run_model(
 )
 }
 \arguments{
-\item{y}{Response vector.}
+\item{y}{Numeric response vector (e.g., gene expression for one gene across spots).}
 
-\item{X}{Covariate matrix.}
+\item{X}{Covariate matrix (spots × covariates).}
 
-\item{lambda}{Deconvolution matrix.}
+\item{lambda}{Deconvolution matrix (spots × cell types).}
 
-\item{family}{GLM family.}
+\item{family}{GLM family: \code{"spot gaussian"}, \code{"spot poisson"}, \code{"spot negative binomial"}, or \code{"spot binomial"}.}
 
-\item{beta_0}{Optional initial coefficients.}
+\item{beta_0}{Optional initial coefficient matrix (covariates × cell types).}
 
-\item{fix_coef}{Logical matrix of fixed coefficients.}
+\item{fix_coef}{Logical matrix (covariates × cell types) indicating coefficients to fix during optimization.}
 
-\item{offset}{Optional offset vector.}
+\item{offset}{Optional numeric vector (same length as \code{y}), used for Poisson or NB normalization.}
 
-\item{initialization}{Method for coefficient initialization: \code{"intercept"} or \code{"full"}.}
+\item{initialization}{Coefficient initialization method: \code{"intercept"} or \code{"full"}.}
 
-\item{min_deconv}{Minimum required cell type proportion.}
+\item{min_deconv}{Minimum required deconvolution value for a spot to be included.}
 
-\item{min_freq}{Minimum frequency of covariate values.}
+\item{min_freq}{Minimum frequency for a covariate to be retained in the model.}
 
-\item{CT}{Optional cell type labels.}
+\item{CT}{Optional vector of dominant cell type labels per spot.}
 
-\item{weights}{Observation weights.}
+\item{weights}{Observation weights (same length as \code{y}).}
 
-\item{ct_cov_weights}{Cell type weights.}
+\item{ct_cov_weights}{Optional vector of cell-type–specific weights (length = number of cell types).}
 
-\item{learning_rate}{Initial learning rate.}
+\item{n_epochs}{Number of training epochs for gradient descent.}
 
-\item{max_diff}{Likelihood improvement threshold.}
+\item{batch_size}{Size of mini-batches used during gradient descent.}
 
-\item{intercept_col}{Optional column index for intercept.}
+\item{learning_rate}{Initial learning rate for optimization.}
 
-\item{max_gd_steps}{Max gradient descent steps.}
+\item{max_diff}{Convergence threshold based on likelihood ratio.}
+
+\item{improvement_threshold}{Minimum required improvement in likelihood ratio between epochs.}
+
+\item{max_conv}{Number of consecutive low-improvement epochs before convergence is assumed.}
+
+\item{intercept_col}{Optional index of the intercept column in \code{X}.}
+
+\item{min_reads_per_1000}{Minimum expression threshold (in reads per 1000) for filtering weak coefficients.}
 }
 \value{
-A list with final coefficients, standard errors, likelihood, convergence status, and diagnostics.
+A list containing:
+\describe{
+\item{beta_est}{Estimated coefficient matrix (covariates × cell types).}
+\item{stand_err_mat}{Standard error matrix for each coefficient.}
+\item{time}{Elapsed fitting time (in seconds).}
+\item{disp}{Estimated dispersion (for NB models).}
+\item{converged}{Logical indicating if convergence was reached.}
+\item{likelihood}{Final negative log-likelihood.}
+\item{vcov}{Variance-covariance matrix.}
+\item{niter}{Number of optimization epochs completed.}
+\item{fixed_coef}{Final matrix indicating fixed coefficients.}
+}
 }
 \description{
-Full pipeline for fitting a Spot-GLM to a single response (e.g. gene), including initialization, coefficient filtering,
-and optimization via gradient descent.
+Fits a generalized linear model (GLM) with spatial deconvolution for a single response variable
+(e.g., gene expression), supporting Poisson, Gaussian, Binomial, and Negative Binomial families.
+This function handles coefficient initialization, model fitting via mini-batch gradient descent,
+and automatic coefficient filtering for weak covariates or poorly represented cell types.
 }

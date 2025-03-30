@@ -19,3 +19,4 @@ Negative log-likelihood value.
 \description{
 Computes the negative log-likelihood for the Binomial distribution.
 }
+\keyword{internal}

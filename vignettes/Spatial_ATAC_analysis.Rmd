@@ -1,8 +1,8 @@
 ---
-title: "Spatial_ATAC_analysis"
+title: "Spatial ATAC Analysis"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Spatial ATAC analysis}
+  %\VignetteIndexEntry{Spatial ATAC Analysis}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -14,7 +14,8 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r setup}
+We load the following packages.
+```
 library(spotglm)
 library(sparrow)
 library(ggplot2)
@@ -26,14 +27,28 @@ library(patchwork)
 
 
 # Overview
-In this vignette we will go through a typical analysis using spotGLM on a spatial ATAC datatset. The dataset comes from a [p22 mouse brain](https://www.nature.com/articles/s41586-023-05795-1#Fig1). In the dataset, we identify 13 major cell types, the most important for this analysis being oligodendrocytes. We are also given 14 distinct regions, the most important of which are the cortex (C0) and the corpus callosum (C3). From the reads in the dataset, we compute the motif score by aggregating reads that overlap with various transcription factor motif signatures. Our goal is to identify changes in motif signature accessibility across regions in a cell type specific manner. 
+In this vignette we will go through a typical analysis using spotGLM on a spatial ATAC dataset. The dataset comes from a [p22 mouse brain](https://www.nature.com/articles/s41586-023-05795-1#Fig1). In the dataset, we identify 13 major cell types, the most important for this analysis being oligodendrocytes. We are also given 14 distinct regions, the most important of which are the cortex (C0) and the corpus callosum (C3). From the reads in the dataset, we compute the motif score by aggregating reads that overlap with various transcription factor motif signatures. Our goal is to identify changes in motif signature accessibility across regions in a cell type specific manner. 
 
-```{r}
+
+## Read Data
+
+We will read in data with the `read_spatial_long_read()` function. The function returns the following
+<details>
+  <summary>Output</summary>
+  + `coords`: Coordinate matrix. Of dimension 9215 by 2
++ `regions`: The one hot encoded region matrix for each spot. Of dimension 9215 by 14
++ `deconv`: The deconvolution of each spot. of dimension 9215 by 9
++ `motif_scores`: The motif score for each spot. A matrix of dimension 9215 by 746.
+</details>
+
+
+
+```
 data = spotglm::read_spatial_atac()
 ```
 
 ## Plot of Spatial Regions
-```{r,fig.width=6, fig.height=6}
+```
 #number of regions
 region = apply(data$regions,1,function(x){which(x == 1)})
 n_regions <- length(unique(region))
@@ -66,8 +81,10 @@ $$H_0: \beta^{t}_{m,r} = \beta^{t}_{m,r'}$$
 
 
 ### SpotGLM of Motif Score on Region (~2 minutes)
-We can fit the model described above via the "spot lm" function. The "spot lm" function is a direct analog of the standard lm function in R. 
-```{r}
+We can fit the model described above via the `spot_lm` function.
+
+
+```
 num_motifs = ncol(data$motif_scores)
 res = vector("list",num_motifs)
 
@@ -84,9 +101,9 @@ names(res) = colnames(data$motif_scores)
 
 
 ### Oligodendrocyte Differential Motif Accessibility
-We can compute pvalues and qvalues for testing for accessibility differences in oligodendrocytes in the corpus callosum vs the cortex using the "compute contrast significance" function. 
-```{r}
+We can compute pvalues and qvalues for testing for accessibility differences in oligodendrocytes in the corpus callosum vs the cortex using the `compute_contrast_significance()` function.  
 
+```
 sig_genes = compute_contrast_significance(input_list = res,
                                     cell_type = "Oligodendrocytes",
                                     effect_names = c("regionC3","regionC0"),
@@ -102,7 +119,7 @@ print(rownames(sig_genes)[sig_genes$qval < 0.05])
 
 
 ### QQplot 
-```{r,fig.width=6, fig.height=6}
+```
 #get pvalues from spotglm 
 pvals = sig_genes$pval
 P = pvals[is.na(pvals) == F]
@@ -129,7 +146,7 @@ box()
 ### Example Motif: SOX4
 
 We showcase an example of a motif that shows differential motif accessibility in oligodendrocytes between the corpus callosum and the cortex. 
-```{r}
+```
 motif <- "SOX4"
 
 # Filter spots in regionC3 or regionC0
@@ -179,22 +196,8 @@ p3 <- ggplot(plot_df, aes(x = x, y = y, color = oligodendrocytes)) +
   coord_fixed() +
   theme_minimal()
 
-```
-
-
-```{r,fig.width=6, fig.height=6}
 p1
-
-```
-
-
-```{r,fig.width=6, fig.height=6}
 p2
-
-```
-
-
-```{r,fig.width=6, fig.height=6}
 p3
-
 ```
+

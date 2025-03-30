@@ -1,0 +1,217 @@
+---
+title: "Intro to SpotGLM"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Intro to SpotGLM}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+We first load all required packages 
+```
+library(spotglm)
+library(sparrow)
+```
+
+
+## Step 1: Simulating Data 
+
+We use the simulate data function in sparrow to simulate 100,000 spots with 8 cell types. Each spot contains at most 2 cell types. We simulate data according to the model 
+$$Y_i \sim Pois(\sum_{t=1}^{T}\lambda_{i,t}\exp(X_i\beta^t + \log(1000)))$$
+Here $Y_i$ is the response (e.g. gene expression) for spot $i$, $X_i$ is the covariate vector for spot $i$,$t$ denotes a cell type, $\lambda_{i,t}$ is the deconvolution estimate for cell type $t$ in spot $i$, and $\beta^t$ is the effect vector for cell type $t$. Note that each cell type gets a different effect vector. Also note that the columns of $X$ are bounded between 0 and 1. Bounding all columns between some interval is recommended to prevent scaling issues and to make interpretation easier. 
+```
+data = sparrow::simulate_data(n = 1e5, nct = 8,effect_scale = 1/5,
+                              intercept_scale = 4,
+                              library_size = 1000, spot_ct = 2,
+                              p = 8,num_null = 2,prob_ct = NULL)
+
+colnames(data$X) = paste0("effect_",c(1:ncol(data$X))-1)
+colnames(data$X)[1] = "intercept"
+
+colnames(data$lambda) = paste0("cell_type_",c(1:ncol(data$lambda)))
+
+
+
+```
+
+
+## Step 2: Formulating a SpotGLM
+SpotGLM is a method for fitting model of the form
+
+$$Y_s|X_s \sim G$$
+$$\mathbb{E}[Y_{s}|X_{s}] = \sum_{t}\lambda_{s,t}F^{-1}(X_{s}\beta^t)$$
+Here $t$ index a cell type and $\lambda_{s,t}$ is the weighting for cell type $t$ in spot $s$. $\beta^t$ is the weight vector for cell type $t$ and $X_s$ is the covariate vector for spot $s$. In general,to specify a spotGLM one needs to first specify single cell level models, that is models that would be used if the data were of single cell resolution. Then they relate the response of a spot $s$ to that of the cell types that belong to the spot.\
+For example, consider a single cell level generalized linear model where for a cell $i$
+$$F(\mathbb{E}[Y_{i}|X_{i}]) = X_i\beta^{CT(i)}$$
+Here $CT(i)$ is the cell type identity of cell $i$. Common formulations of $F$ include $F(x) = x$ (ordinary least squares), $F(x) = \log(x)$ (poisson or negative binomial regression), or $F(x) = \text{logit}(x)$ (logistic regression). For now let us assume that we are using a poisson or negative binomial model as is common in spatial transcriptomic data. In this case we have 
+
+$$\log(\mathbb{E}[Y_{i}|X_{i}]) = \log(L_i) + X_i\beta^{CT(i)}$$
+Where $L_i$ is the library size of cell $i$. 
+
+\
+Now we need to relate a spot's response to the responses of the cells that lay in the spot. Accounting for the library size of spot $s$, $L_s$, we can model the response of spot $s$ to be the weighted average of the cells that belong to the spot. Let $L_t$ be the expected library size of a cell of type $t$. Then  
+$$Y_{s}|X_{s} \sim Pois(\mathbb{E}[Y_{i}|X_{s}])$$
+$$\mathbb{E}[Y_{s}|X_{s}] = \sum_{i:i\in s}\mathbb{E}[Y_{i}|X_{s}] = \sum_{t}n_{s,t}L_t\exp(X_s\beta^{t}) \approx L_s\sum_{t}\pi_{s,t}\exp(X_s\beta^t) = \sum_{t}\pi_{s,t}\exp(X_s\beta^t + \log(L_s))$$
+
+here $L_s$ is the library size for spot $s$, $\pi_{s,t}$ can be thought of as the deconvolution amount of cell type $t$ in spot $s$. This form matches the spotGLM form and thus we can use the spotGLM package to fit this model. \
+
+## Fitting SpotGLM
+
+We fit a spotGLM using the `run_model()` function. This function takes several arguments, although most are pre-specified. The main arguments are as follows
+<details>
+  <summary>Arguments</summary>
+
+  - `y`: A vector of observed response values (e.g., gene expression or spatial counts).  
+- `X`: A design matrix of covariates or predictors.  
+- `family`: A description of the error distribution and link function to be used in the model (e.g., `"spot poisson"` or `"spot binomial"`).
+- `offset`: For poisson/negative binomial models: An optional numeric vector to be used as an offset in the model (useful for normalization or exposure adjustment).Generally this is set to be the log of the library size for each spot. 
+- `initialization` : What type of initialization to use. "intercept" only fits the intercept for each cell type, setting other parameters equal to 0 to start. Full, fits one value for all parameters for each cell type. If neither are preferable, provide a custom initialization in the `beta_0` argument and set `initialization` to "none
+- `intercept_col` = 1: If `initialization` = "intercept", which column in `X` corresponds to the intercept.
+-`min_reads_per_1000`: During initialization, if family is "spot poisson" or "spot negative binomial" and expected reads per 1000 for a cell type is less than this value, parameters will not be fit for this cell types.
+- `learning_rate`: The learning rate used for gradient descent. It is advised to pick a large value since the learning rate changes dynamically throughout fitting. Default value is 1. 
+- `n_epochs`: The number of epochs to use in fitting. Default value 50.
+-`batch_size`: Batch size to use in mini-batch gradient descent. Default value 128
+-`max_diff`: Stopping criterion: If change in likelihood between epochs is less than max diff, terminate fitting. Default value 1-1e-6
+</details>
+
+The `run_model()` function returns a list with the following elements:
+
+<details>
+  <summary>Output</summary>
+  - `beta_est`: Estimated regression coefficients. Of dimension #Columns of X by #Cell Types
+- `stand_err_mat`: Standard error matrix for beta coefficients
+- `time`: Time elapsed to fit model. Not including initialization
+- `disp`: The dispersion parameter (for negative binomial or gaussian models)
+- `converged`: Logical flag indicating whether the optimization algorithm converged
+- `likelihood`: The log-likelihood of the fitted model
+- `vcov`: The variance covariance matrix of the beta coefficients
+- `niter`: Number of epochs used
+- `fixed coef`: Which coefficients has insufficient sample size or expression to be fit
+
+</details>
+
+In the case where a spot binomial model is ran, an additional weight argument must be specified. The weight argument in a standard logistic regression corresponds to the number of trials for each response variable. The same interpretation is used for the spot binomial model. Additionally, if one knows wants to set $\lambda_{s,} = C_{s,}*W_{T \times 1}$ where $W$ is a vector of length equal to the number of cell types $T$, then one can set the `lambda` argument equal to $C$ and set the `ct_cov_weights` argument equal to $W$. In this case, spotGLM will normalize each row of $\lambda$ to sum to 1. This can be useful for fitting many models serially, where $\lambda_{s,} = C_{s,}*W$ where $C_{s,}$ does not change on each iteration (e.g. deconvolution estimates) but $W$ does (e.g. the weighting depends on the relative gene expression across cell types).\
+
+ 
+If a linear spotGLM, known as a "spot gaussian" model is fit, one can simply use the `spot_lm` function. The `spot_lm` function is a direct analog of the standard lm function in R and take the following arguments.
+
+<details>
+  <summary>Arguments</summary>
+
+  - `y`: A vector of observed response values (e.g., gene expression or spatial counts).  
+- `X`: A design matrix of covariates or predictors.  
+- `lambda`: The deconvolution matrix. 
+- `fix_coef`: A matrix of dimension 
+</details>
+
+The `spot_lm` function returns a list with the following elements:
+<details>
+  <summary>Output</summary>
+  - `beta`: Estimated regression coefficients. Of dimension #Columns of X by #Cell Types
+- `stand_err_mat`: Standard error matrix.
+- `sigma.sq`: Residual variance estimate.
+- `vcov`: The Variance-covariance matrix of the beta coefficients
+
+</details>
+
+```
+model = spotglm::run_model(y = data$y,X = data$X,lambda = data$lambda,
+                           family = "spot poisson",offset=rep(log(1000),
+                          length(data$y)),n_epochs = 100,batch_size= 500,
+                          learning_rate = 1,max_diff = 1-1e-6,
+                          initialization = "intercept",intercept_col = c(1))
+
+```
+
+Finally, we recommend scaling features to be in the range [0,1] or [-1,1] if possible. 
+
+## Downstream Analyses
+
+### Plotting Results
+```
+plot(data$beta[-1,],model$beta_est[-1,])
+abline(a=0,b=1,col = "red")
+
+```
+### Interpretting Outputs
+The beta estimates can be found via `beta_est` index. We see that the column names correspond to cell types and the row names correspond to the effect names. To find the estimated effect vector $\beta^t$, one simply needs to look at the relevant column of the matrix. 
+```
+model$beta_est
+
+```
+The standard error matrix gives the corresponding standard errors of each estimated coefficient and can be found in the `stand_err_mat` index. it has the same structure as the coefficient matrix. 
+
+```
+model$stand_err_mat
+
+```
+The `vcov` index gives us the variance covariance matrix of the beta coefficients. It is of dimension $(T\times p)\times(T \times p)$ where $T$ is the number of cell types and $p$ is the number of features. The columns correspond to the coefficients traversing column wise throughout the coefficient matrix. Therefore, the first 9 columns of the variance-covariance matrix correspond to the the first column of the coefficient matrix.
+```
+model$vcov[1:9,1:9]
+```
+
+### Assessing Significance
+One can compute pvalues and qvalues for testing significance via the `compute_significance` function. This function takes the following arguments:
+
+<details>
+  <summary>Arguments</summary>
+  + `input_list`: A list of spotglm outputs. Each element of the list should contain a list that holds the beta estimates and standard errors.
++ `cell_type`: The cell type of interest
++ `effect_names`: The effects we wish to assess significance for in the cell type of interest. 
++ `beta_name`: Where the beta coefficient estimate matrix is held in the each element of the input list. Default is `beta_est`
++ `standard_error_name`: Where the beta coefficient estimate matrix is held in the each element of the input list. Default is `std_error_mat`
++ `sided`: Should we test for a one sided (1) or two-sided (2) difference in effects? Default value is 2
++ `direction`: If one sided, should we test for positive effects(effect > 0) or negative?
+</details>
+
+
+The output is a matrix with 7 columns; the name of the response, the cell type,the effect, the sidedness of the test, the direction of the test,the pvalue, and the qvalue. The qvalue is designed to be used in scenarios where one is testing across many responses (e.g. genes) and is interested in assessing significance for a cell type specific effect across all responses.Because the input must be a list of lists, for this example we use list(model) as an argument. Note that if the input list has no names, the names are replaced with the prefix "Test". For easy interpretation of results it is suggested that one name the list.
+
+
+
+```
+spotglm::compute_significance(input_list = list(model),
+                              cell_type = "cell_type_1",
+                              "effect_name" = "effect_1",sided = 2)
+
+```
+
+
+### Contrasts
+Another downstream analysis one can use is a contrast test. This test whether $\beta^{t}_j = \beta^{t}_k$ for some cell type $t$ and effects $j$ and $k$. One can compute pvalues and qvalues for testing significance via the `compute_contrast_significance` function. This function takes the following arguments:
+This function takes the following arguments
+
+
+<details>
+  <summary>Arguments</summary>
+  + `input_list`: A list of spotglm outputs. Each element of the list should contain a list that holds the beta estimates and the variance-covariance matrix.
++ `cell_type`: The cell type of interest
++ `effect_names`: A vector of length two that lists the effects we wish to compare in the cell type of interest.
++ `beta_name`: Where the beta coefficient estimate matrix is held in the each element of the input list
++ `covariance_name`: Where the variance-covariance matrix for beta coefficient estimate matrix is held in the each element of the input list. Default is `vcov`
++ `sided`: Should we test for a one sided (1) or two-sided (2) difference in effects? Default is 2.
++ `direction`: If one sided, should we test for positive effects(effect 1 > effect 2) or negative?
+</details>
+The output is a matrix with 8 columns; the name of the response, the cell type,the effects, the sidedness of the test, the direction of the test,the pvalue, and the qvalue.
+
+```
+spotglm::compute_contrast_significance(input_list = list(model),
+                                       cell_type = "cell_type_1",
+                                       "effect_name" = c("effect_1","effect_2"),
+                                       sided = 2)
+
+```
+
+
+
+
+
+
+

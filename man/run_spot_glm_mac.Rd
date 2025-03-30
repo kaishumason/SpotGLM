@@ -2,7 +2,7 @@
 % Please edit documentation in R/glm_extension_adam.R
 \name{run_spot_glm_mac}
 \alias{run_spot_glm_mac}
-\title{Parallelized Spot-GLM Model Fitting}
+\title{Parallelized Spot-GLM Model Fitting (macOS / Linux)}
 \usage{
 run_spot_glm_mac(
   Y,
@@ -36,50 +36,50 @@ run_spot_glm_mac(
 
 \item{lambda}{Deconvolution matrix (spots × cell types).}
 
-\item{family}{The GLM family to use. One of: "spot gaussian", "spot poisson",
-"spot negative binomial", or "spot binomial".}
+\item{family}{The GLM family to use. One of: \code{"spot gaussian"}, \code{"spot poisson"},
+\code{"spot negative binomial"}, or \code{"spot binomial"}.}
 
-\item{beta_0}{Optional initial beta matrix (covariates × cell types).}
+\item{beta_0}{Optional initial coefficient matrix (covariates × cell types).}
 
-\item{fix_coef}{Optional logical matrix (covariates × cell types) indicating which coefficients to fix.}
+\item{fix_coef}{Optional logical matrix indicating which coefficients to fix (same dimensions as \code{beta_0}).}
 
-\item{initialization}{Method used for initializing coefficients: "intercept" or "full".}
+\item{initialization}{Coefficient initialization method: \code{"intercept"} or \code{"full"}.}
 
-\item{G}{Maximum chunk size in gigabytes (used to control memory usage).}
+\item{G}{Maximum chunk size (in GB) to control memory usage during parallelization.}
 
 \item{num_cores}{Number of CPU cores to use in parallel.}
 
-\item{offset}{Optional offset vector (length equal to number of spots).}
+\item{offset}{Optional numeric vector (length equal to number of spots).}
 
-\item{min_deconv}{Minimum required deconvolution value for a spot to be considered informative.}
+\item{min_deconv}{Minimum required deconvolution value per spot.}
 
-\item{min_freq}{Minimum frequency for a covariate to be retained in a model.}
+\item{min_freq}{Minimum frequency for a covariate to be retained in the model.}
 
-\item{CT}{Optional vector of dominant cell types per spot (used in initialization).}
+\item{CT}{Optional vector of dominant cell types per spot.}
 
-\item{weights}{Optional matrix of observation-level weights (spots × genes).}
+\item{weights}{Optional observation-level weight matrix (spots × genes).}
 
-\item{ct_cov_weights}{Optional matrix of cell-type–specific weights per gene (cell types × genes).}
+\item{ct_cov_weights}{Optional cell-type-specific weight matrix (cell types × genes).}
 
-\item{learning_rate}{Initial learning rate for optimization.}
+\item{n_epochs}{Number of training epochs.}
 
-\item{max_diff}{Convergence threshold on likelihood improvement.}
+\item{batch_size}{Size of each mini-batch.}
 
-\item{intercept_col}{Optional index of the intercept column in \code{X}, if it exists.}
+\item{learning_rate}{Initial learning rate.}
 
-\item{max_gd_steps}{Maximum number of gradient descent steps.}
-}
-\value{
-A named list of model results (one per gene), where each element contains the estimated
-coefficients, standard errors, dispersion, likelihood, and convergence diagnostics.
+\item{max_diff}{Convergence threshold based on likelihood improvement ratio.}
+
+\item{improvement_threshold}{Minimum improvement ratio between epochs.}
+
+\item{max_conv}{Number of low-improvement epochs before stopping.}
+
+\item{intercept_col}{Optional column index in \code{X} representing the intercept.}
 }
 \description{
-Applies Spot-GLM to multiple responses (e.g. genes) in parallel, using memory-efficient chunking and
-multicore processing via the \code{parallel::mclapply} function. Mclapply only works for Macs. For windows users, please use \code{run_spot_glm_windows}
+Fits a Spot-GLM model for multiple responses (e.g., genes) in parallel using memory-safe chunking
+and \code{pbmclapply}, which relies on \code{mclapply}. Only available on Unix-based systems.
 }
 \details{
-This function splits the gene expression matrix \code{Y} into chunks based on estimated memory usage,
-then fits the Spot-GLM model in parallel across each gene using multiple CPU cores.
-
-External packages used inside the parallel workers include: \code{Matrix}, \code{MASS}, and \code{LaplacesDemon}.
+This version uses \code{pbmcapply::pbmclapply} for parallelism. On Windows systems,
+please use \code{\link{run_spot_glm_windows}}.
 }

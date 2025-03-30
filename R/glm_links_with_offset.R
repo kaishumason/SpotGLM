@@ -1,4 +1,3 @@
-
 #' Negative Binomial Log-Likelihood
 #'
 #' Computes the negative log-likelihood for the Negative Binomial distribution.
@@ -8,12 +7,11 @@
 #' @param disp Dispersion parameter.
 #'
 #' @return Negative log-likelihood value.
-#' @export
+#' @keywords internal
 nb_lik = function (x, mu, disp)
 {
   return(-sum(dnbinom(x = x, size = disp, mu = mu, log = TRUE)))
 }
-
 
 
 #' Gaussian Log-Likelihood
@@ -25,7 +23,7 @@ nb_lik = function (x, mu, disp)
 #' @param sigma Standard deviation.
 #'
 #' @return Negative log-likelihood value.
-#' @export
+#' @keywords internal
 gaussian_lik = function (x, mu, sigma)
 {
   return(-sum(dnorm(x = x, sd = sigma, mean = mu, log = TRUE)))
@@ -41,12 +39,11 @@ gaussian_lik = function (x, mu, sigma)
 #' @param mu Vector of predicted means (Poisson rates).
 #'
 #' @return Negative log-likelihood value.
-#' @export
+#' @keywords internal
 poisson_lik = function (x, mu)
 {
   return(-sum(dpois(x = x, lambda = mu, log = TRUE)))
 }
-
 
 
 #' Binomial Log-Likelihood
@@ -58,7 +55,7 @@ poisson_lik = function (x, mu)
 #' @param num_obs Number of trials for each observation.
 #'
 #' @return Negative log-likelihood value.
-#' @export
+#' @keywords internal
 binomial_lik = function (x, mu, num_obs)
 {
   return(-sum(dbinom(x = x, size = num_obs,prob = mu,log = TRUE)))
@@ -95,8 +92,6 @@ spot_poisson[["link"]] <- function(C,lambda,offset = rep(0,length(C))) {
     A = mu-C*exp(offset)
     A = pmax(A,1e-3)
     B = lambda*exp(offset)
-    #print(paste("A:", A[1:10]))  # Monitor A values
-    #print(paste("B:", B[1:10]))  # Monitor B values
     if(mean(is.na(log(A/B))) > 0){
       #print("errors")
     }
@@ -114,7 +109,6 @@ spot_poisson[["link"]] <- function(C,lambda,offset = rep(0,length(C))) {
   ## derivative of dmu/deta
   mu.eta <- function(eta) {
     eta <- pmax(eta, -10)
-    #eta = pmin(eta,-1)
     mu = exp(eta)
     return ((lambda*mu)*exp(offset))
   }
@@ -164,8 +158,6 @@ spot_poisson[["grad"]] = function(X,y,beta,lambda,offset = rep(0,length(y))){
   grad_beta = beta * 0
   # Compute weights matrix for all observations and components
   weights = -lambda * CT_means + y * (1 / total_means) * lambda * CT_means  # Vectorized computation for weights
-  #print(dim(weights))
-  #print(dim(t(X)))
   # Batch computation of gradients
   grad_beta = t(X) %*% weights  # Computes all gradients at once
   return(list(grad = grad_beta,weights = weights))

@@ -1211,33 +1211,50 @@ initialize_fix_coef = function(X,lambda,fix_coef = matrix(FALSE,ncol(X),ncol(lam
 
 
 
-
-#' Run Spot-GLM Model with Initialization and Optimization
+#' Fit a Spatial GLM with Initialization and Optimization
 #'
-#' Full pipeline for fitting a Spot-GLM to a single response (e.g. gene), including initialization, coefficient filtering,
-#' and optimization via gradient descent.
+#' Fits a generalized linear model (GLM) with spatial deconvolution for a single response variable 
+#' (e.g., gene expression), supporting Poisson, Gaussian, Binomial, and Negative Binomial families.
+#' This function handles coefficient initialization, model fitting via mini-batch gradient descent, 
+#' and automatic coefficient filtering for weak covariates or poorly represented cell types.
 #'
-#' @param y Response vector.
-#' @param X Covariate matrix.
-#' @param lambda Deconvolution matrix.
-#' @param family GLM family.
-#' @param beta_0 Optional initial coefficients.
-#' @param fix_coef Logical matrix of fixed coefficients.
-#' @param offset Optional offset vector.
-#' @param initialization Method for coefficient initialization: `"intercept"` or `"full"`.
-#' @param min_deconv Minimum required cell type proportion.
-#' @param min_freq Minimum frequency of covariate values.
-#' @param CT Optional cell type labels.
-#' @param weights Observation weights.
-#' @param ct_cov_weights Cell type weights.
-#' @param max_gd_steps Max gradient descent steps.
-#' @param learning_rate Initial learning rate.
-#' @param max_diff Likelihood improvement threshold.
-#' @param intercept_col Optional column index for intercept.
+#' @param y Numeric response vector (e.g., gene expression for one gene across spots).
+#' @param X Covariate matrix (spots × covariates).
+#' @param lambda Deconvolution matrix (spots × cell types).
+#' @param family GLM family: `"spot gaussian"`, `"spot poisson"`, `"spot negative binomial"`, or `"spot binomial"`.
+#' @param beta_0 Optional initial coefficient matrix (covariates × cell types).
+#' @param fix_coef Logical matrix (covariates × cell types) indicating coefficients to fix during optimization.
+#' @param offset Optional numeric vector (same length as `y`), used for Poisson or NB normalization.
+#' @param initialization Coefficient initialization method: `"intercept"` or `"full"`.
+#' @param min_deconv Minimum required deconvolution value for a spot to be included.
+#' @param min_freq Minimum frequency for a covariate to be retained in the model.
+#' @param CT Optional vector of dominant cell type labels per spot.
+#' @param weights Observation weights (same length as `y`).
+#' @param ct_cov_weights Optional vector of cell-type–specific weights (length = number of cell types).
+#' @param n_epochs Number of training epochs for gradient descent.
+#' @param batch_size Size of mini-batches used during gradient descent.
+#' @param learning_rate Initial learning rate for optimization.
+#' @param max_diff Convergence threshold based on likelihood ratio.
+#' @param improvement_threshold Minimum required improvement in likelihood ratio between epochs.
+#' @param max_conv Number of consecutive low-improvement epochs before convergence is assumed.
+#' @param intercept_col Optional index of the intercept column in `X`.
+#' @param min_reads_per_1000 Minimum expression threshold (in reads per 1000) for filtering weak coefficients.
 #'
-#' @return A list with final coefficients, standard errors, likelihood, convergence status, and diagnostics.
+#' @return A list containing:
+#' \describe{
+#'   \item{beta_est}{Estimated coefficient matrix (covariates × cell types).}
+#'   \item{stand_err_mat}{Standard error matrix for each coefficient.}
+#'   \item{time}{Elapsed fitting time (in seconds).}
+#'   \item{disp}{Estimated dispersion (for NB models).}
+#'   \item{converged}{Logical indicating if convergence was reached.}
+#'   \item{likelihood}{Final negative log-likelihood.}
+#'   \item{vcov}{Variance-covariance matrix.}
+#'   \item{niter}{Number of optimization epochs completed.}
+#'   \item{fixed_coef}{Final matrix indicating fixed coefficients.}
+#' }
 #'
 #' @export
+
 run_model = function(y,X,lambda,family = "spot gaussian",beta_0 = NULL,fix_coef = NULL,
                      offset = rep(0,length(y)),initialization = "full", min_deconv = 0.1,min_freq = 50,
                      CT = NULL, weights = rep(1,length(y)),ct_cov_weights = rep(1,ncol(lambda)),
@@ -1380,41 +1397,53 @@ run_model = function(y,X,lambda,family = "spot gaussian",beta_0 = NULL,fix_coef 
 
 
 
-
-
-#' Parallelized Spot-GLM Model Fitting
+#' Parallelized Spot-GLM Model Fitting (Windows)
 #'
-#' Applies Spot-GLM to multiple responses(e.g. genes) in parallel, using memory-efficient chunking and
-#' multicore processing via the `foreach` and `doParallel` packages.
+#' Fits a Spot-GLM model for multiple response variables (e.g., genes) in parallel using `foreach` and
+#' `doParallel`. Optimized for Windows systems where `mclapply` is not available.
 #'
 #' @param Y Response matrix (spots × responses).
 #' @param X Covariate matrix (spots × covariates).
 #' @param lambda Deconvolution matrix (spots × cell types).
-#' @param family The GLM family to use. One of: `"spot gaussian"`, `"spot poisson"`,
-#' `"spot negative binomial"`, or `"spot binomial"`.
-#' @param beta_0 Optional initial beta matrix (covariates × cell types).
-#' @param fix_coef Optional logical matrix (covariates × cell types) indicating which coefficients to fix.
-#' @param offset Optional offset vector (length equal to number of spots).
-#' @param initialization Method used for initializing coefficients: `"intercept"` or `"full"`.
-#' @param G Maximum chunk size in gigabytes (used to control memory usage).
+#' @param family The GLM family to use. One of: `"spot gaussian"`, `"spot poisson"`, 
+#'   `"spot negative binomial"`, or `"spot binomial"`.
+#' @param beta_0 Optional initial coefficient matrix (covariates × cell types).
+#' @param fix_coef Optional logical matrix indicating which coefficients to fix (same dimensions as `beta_0`).
+#' @param offset Optional numeric vector (length equal to number of spots).
+#' @param initialization Coefficient initialization method: `"intercept"` or `"full"`.
+#' @param G Maximum chunk size (in GB) to control memory usage during parallelization.
 #' @param num_cores Number of CPU cores to use in parallel.
-#' @param min_deconv Minimum required deconvolution value for a spot to be considered informative.
-#' @param min_freq Minimum frequency for a covariate to be retained in a model.
-#' @param CT Optional vector of dominant cell types per spot (used in initialization).
-#' @param weights Optional matrix of observation-level weights (spots × genes).
-#' @param ct_cov_weights Optional matrix of cell-type–specific weights per gene (cell types × genes).
-#' @param max_gd_steps Maximum number of gradient descent steps.
-#' @param learning_rate Initial learning rate for optimization.
-#' @param max_diff Convergence threshold on likelihood improvement.
-#' @param intercept_col Optional index of the intercept column in `X`, if it exists.
+#' @param min_deconv Minimum required deconvolution value per spot.
+#' @param min_freq Minimum frequency for a covariate to be retained in the model.
+#' @param CT Optional vector of dominant cell types per spot.
+#' @param weights Optional observation-level weight matrix (spots × genes).
+#' @param ct_cov_weights Optional cell-type-specific weight matrix (cell types × genes).
+#' @param n_epochs Number of training epochs.
+#' @param batch_size Size of each mini-batch.
+#' @param learning_rate Initial learning rate.
+#' @param max_diff Convergence threshold based on likelihood improvement ratio.
+#' @param improvement_threshold Minimum improvement ratio between epochs.
+#' @param max_conv Number of low-improvement epochs before stopping.
+#' @param intercept_col Optional column index in `X` representing the intercept.
 #'
-#' @return A named list of model results (one per gene), where each element contains the estimated
-#' coefficients, standard errors, dispersion, likelihood, and convergence diagnostics.
+#' @return A named list of model results (one per gene), each containing:
+#' \describe{
+#'   \item{beta_est}{Estimated coefficients.}
+#'   \item{stand_err_mat}{Standard error matrix.}
+#'   \item{disp}{Dispersion estimate (if applicable).}
+#'   \item{likelihood}{Final log-likelihood.}
+#'   \item{converged}{Convergence status.}
+#'   \item{niter}{Number of epochs run.}
+#'   \item{vcov}{Variance-covariance matrix.}
+#'   \item{fixed_coef}{Final fixed coefficients matrix.}
+#' }
 #'
-#' @details This function splits the gene expression matrix `y` into chunks based on estimated memory usage,
-#' then fits the Spot-GLM model in parallel across each gene using multiple cores.
+#' @details
+#' This function splits the gene expression matrix into memory-safe chunks, 
+#' then evaluates each chunk in parallel using `foreach` and `doParallel`. 
+#' For Mac/Linux, use \code{\link{run_spot_glm_mac}}.
 #'
-#' External packages used inside the parallel workers include: \code{Matrix}, \code{MASS}, and \code{LaplacesDemon}.
+#' External dependencies include \code{Matrix}, \code{MASS}, \code{LaplacesDemon}.
 #'
 #' @importFrom foreach %dopar%
 #' @import parallel
@@ -1557,40 +1586,16 @@ run_spot_glm_windows = function(Y,X,lambda,family = "spot gaussian",beta_0 = NUL
   
 }
 
-
-#' Parallelized Spot-GLM Model Fitting
+#' Parallelized Spot-GLM Model Fitting (macOS / Linux)
 #'
-#' Applies Spot-GLM to multiple responses (e.g. genes) in parallel, using memory-efficient chunking and
-#' multicore processing via the `parallel::mclapply` function. Mclapply only works for Macs. For windows users, please use `run_spot_glm_windows`
+#' Fits a Spot-GLM model for multiple responses (e.g., genes) in parallel using memory-safe chunking
+#' and `pbmclapply`, which relies on `mclapply`. Only available on Unix-based systems.
 #'
-#' @param Y Response matrix (spots × responses).
-#' @param X Covariate matrix (spots × covariates).
-#' @param lambda Deconvolution matrix (spots × cell types).
-#' @param family The GLM family to use. One of: "spot gaussian", "spot poisson",
-#'   "spot negative binomial", or "spot binomial".
-#' @param beta_0 Optional initial beta matrix (covariates × cell types).
-#' @param fix_coef Optional logical matrix (covariates × cell types) indicating which coefficients to fix.
-#' @param offset Optional offset vector (length equal to number of spots).
-#' @param initialization Method used for initializing coefficients: "intercept" or "full".
-#' @param G Maximum chunk size in gigabytes (used to control memory usage).
-#' @param num_cores Number of CPU cores to use in parallel.
-#' @param min_deconv Minimum required deconvolution value for a spot to be considered informative.
-#' @param min_freq Minimum frequency for a covariate to be retained in a model.
-#' @param CT Optional vector of dominant cell types per spot (used in initialization).
-#' @param weights Optional matrix of observation-level weights (spots × genes).
-#' @param ct_cov_weights Optional matrix of cell-type–specific weights per gene (cell types × genes).
-#' @param max_gd_steps Maximum number of gradient descent steps.
-#' @param learning_rate Initial learning rate for optimization.
-#' @param max_diff Convergence threshold on likelihood improvement.
-#' @param intercept_col Optional index of the intercept column in `X`, if it exists.
+#' @inheritParams run_spot_glm_windows
 #'
-#' @return A named list of model results (one per gene), where each element contains the estimated
-#' coefficients, standard errors, dispersion, likelihood, and convergence diagnostics.
-#'
-#' @details This function splits the gene expression matrix `Y` into chunks based on estimated memory usage,
-#' then fits the Spot-GLM model in parallel across each gene using multiple CPU cores.
-#'
-#' External packages used inside the parallel workers include: \code{Matrix}, \code{MASS}, and \code{LaplacesDemon}.
+#' @details
+#' This version uses `pbmcapply::pbmclapply` for parallelism. On Windows systems,
+#' please use \code{\link{run_spot_glm_windows}}.
 #'
 #' @import parallel
 #' @import Matrix

@@ -1,5 +1,5 @@
 ---
-title: "Spatial_Long_Read_analysis"
+title: "Spatial Long-Read Analysis"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Spatial Long-Read Analysis}
@@ -14,7 +14,8 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r setup}
+We will load the following packages
+```
 library(spotglm)
 library(ggplot2)
 library(dplyr)
@@ -25,12 +26,27 @@ In this vignette we will go through a typical analysis using spotGLM on a spatia
 
 
 ## Read in Data
-```{r}
+
+We will read in data with the `read_spatial_long_read()` function. The function returns the following
+<details>
+  <summary>Output</summary>
+  + `coords`: Coordinate matrix. Of dimension 918 by 2
++ `niche`: The one hot encoded region matrix for each spot. Of dimension 918 by 5
++ `deconv`: The deconvolution of each spot. of dimension 918 by 11
++ `library size`: The library size of each spot. A vector of length 918
++ `total_gene_expression`: For each gene, a vector of spot gene expression. A matrix of dimension 918 by 643
++ `isoform expression`: A list with each element corresponding to a gene. `isoform expression[[gene]]` is a list of length two that contains the spot level expression of the top two isoforms for that gene. 
+</details>
+
+```
 data = spotglm::read_spatial_long_read()
 ```
 
+
+
+
 ## Plot Regions 
-```{r,fig.width=6, fig.height=6}
+```
 
 region = apply(data$regions,1,function(x){colnames(data$regions)[which(x == 1)]})
 library(ggplot2)
@@ -59,20 +75,26 @@ $$Y_{s,g} \sim Pois(\exp(\log(L_s) + \sum_{t} \pi_{s,t}\exp(\beta_{0,g}^t)))$$
 In this model, $L_s$ represents the library size of spot $s$,$\pi_{s,t}$ represents the deconvolution estimate of cell type $t$ in spot $s$, and $\beta_{0,g}^t$ represents the intercept estimate for cell type $t$. We then focused on these cell types and applied SpotGLM to compare cell type-specific isoform relative expression between all pairs of regions.  \
 
 The SpotGLM and corresponding test are described as follows: \
-For a gene $g$ let the isoform relative proportion the isoform of interest in spot $s$  be $\gamma_s^g$. $\gamma_s^g$ is a weighted average of the isoform relative proportions of the cell types that make up $s$ with cell type $t$'s weight equal to the cell type mean expression of gene $g$, $\mu_{g,t}$ times the proportion of cell type $t$ in spot $s$, $\pi_{s,t}$. Let $\gamma_t^g$ be the isoform relative proportion for cell type $t$. Then 
+For a gene $g$ let the isoform relative proportion the isoform of interest in spot $s$  be $\gamma_s^g$. The isoform relative proportion is defined as
+$$\mathbb{P}[\text{UMI is of isoform i |UMI is of gene that isoform belongs to}]$$
+
+$\gamma_s^g$ is a weighted average of the isoform relative proportions of the cell types that make up $s$ with cell type $t$'s weight equal to the cell type mean expression of gene $g$, $\mu_{g,t}$ times the proportion of cell type $t$ in spot $s$, $\pi_{s,t}$.Let $\gamma_t^g$ be the isoform relative proportion for cell type $t$. Then 
 
 $$\gamma_s^g = \frac{\sum_{t}\pi_{s,t}\gamma_t^g\mu_{g,t}}{\sum_{t'\in s}\pi_{s,t'}\mu_{g,t'}}$$
 At the single cell level, we fit a cell type specific logistic regression model with our covariate matrix 𝑋 being the one hot encoded region for each cell. That is that 
 $$Y_i^g \sim Bin(n_{i}^g, \gamma^g_i)$$
-$$logit(\gamma^g_i) = X_i\beta^{CT(i),g}$$
+$$\text{logit}(\gamma^g_i) = X_i\beta^{CT(i),g}$$
 
 $CT(i)$ represents the cell type of cell $i$. $Y_i^g$ represents the number of transcripts belong to the isoform of interest. $n_{i}^g$ represents the total number of transcripts belonging to gene $g$. $\beta^{t,g}_r$ represents the log odds of the event that a transcript belonging to gene $g$ belongs to the isoform of interest in cell type $t$ in region $r$.$\beta^{t,g}_r$ can be estimated in a cell type specific manner through spotGLM. We simply have to weight our deconvolution matrix $\pi_{s,t}$ by the corresponding gene weight $\mu_{g,t}$.  To test for cell type specific isoform switching between regions $r$ and $r'$ in cell type $t$, we test the null hypothesis
 
 $$H_0:\beta^{t,g}_r = \beta^{t,g}_{r'}$$
+Note that both models require use of the spotglm function `run_model`. 
+
+
 
 ### Step 1: Get Average Expression of Gene For Each Cell Type (~1 minute)
-We first fit the intercept model as described above.We make use of the spotglm function "run_model". This function functions like the normal glm function. We specify our response $y$ which we take to be the gene expression values for a gene $g$. our covariates $X$ is just the intercept matrix. $\lambda$ is our deconvolution which we make sure has rowSums that sum to 1. Our offset is the library size of the each spot. The initialization used is "full" since we want to intialize all prameters. Our family is "spot poisson" since we are fitting a poisson model. 
-```{r}
+We first fit the intercept model as described above.We make use of the spotglm function "run_model". We specify our response $y$ which we take to be the gene expression values for a gene $g$. our covariates $X$ is just the intercept matrix. $\lambda$ is our deconvolution which we make sure has row sums that sum to 1. Our offset is the library size of the each spot. The initialization used is "full" since we want to initialize all parameters. Our family is "spot poisson" since we are fitting a poisson model. 
+```
 #get number of genes 
 ngenes = ncol(data$total_gene_expression)
 #initialize intercept estimates
@@ -122,8 +144,9 @@ for(j in c(1:ngenes)){
 
 ### Step 2: SpotGLM to Perform Isoform Differential Expression (~1 minute)
 
-We next fit the binomial spotGLM as described above. We again use the "run model" function. This time however, the family is "spot binomial" since we are running a binomial model. The weights are the total gene exression for the gene $g$ and we weight our deconvolution matrix $\lambda$ by $\beta_{0,g}^t$ which we fit from the previous step. 
-```{r}
+We next fit the binomial spotGLM as described above. We again use the "run model" function. This time however,the family is "spot binomial" since we are running a binomial model. We additionally use two parameters that are generally not used when running spotglm `weights` and `ct_cov_weights`. In a binomial regression model, it is necessary to weight observations by the number of trials used. For each gene this corresponds to the total gene expression vector. Additionally, unlike the spot poisson model where the spot expression was a weighted mean of cell type level expression with the weight corresponding to $\pi_{s,t}$, in the spot binomial model, there is an additional cell type specific weight $\mu_{g,t} = \exp(\beta_{0,g}^t)$. We can include this vector in the `ct_cov_weights` argument. We fit the binomial model below.
+
+```
 
 #Step 2: Fit spot binomial model
 isoform_DE = vector("list",ngenes)
@@ -154,8 +177,8 @@ for(j in c(1:ngenes)){
 ```
 
 ### Step 3: Downstream Analysis: Contrast Test to Identify Isoform Switching Across Regions
-We now test for cell type specific isoform switching across regions. We append the matrices outputted from the "compute contrast significance" function and perform a global BH correction. We then print out the genes that show significant isoform switching. 
-```{r}
+We now test for cell type specific isoform switching across regions. This uses the `compute_contrast_test()` function. We append the matrices outputted from the "compute contrast significance" function and perform a global BH correction. We then print out the genes that show significant isoform switching. 
+```
 #Store all contrast tests 
 all_contrast_tests = list()
 cell_types = colnames(data$deconv)
@@ -199,15 +222,15 @@ significant_isoform_switches = combined_contrast_tests%>%filter(qval < 0.1)
 ```
 
 ### Results of Contrast Test as a Table 
-```{r}
+```
 head(significant_isoform_switches,10)
 
 ```
 
 ### Example Gene: Ap3s1
 
-Here we show a gene, Ap3s1, that shows evidence of isoform switching betwene the granule layer and other layers in Neurons. Because Neurons are the only important cell types for this gene, we can safely just plot overall isoform relative proportion and attribute any differences to Neurons. 
-```{r,fig.width=6, fig.height=6}
+Here we show a gene, Ap3s1, that shows evidence of isoform switching between the granule layer and other layers in Neurons. Because Neurons are the only important cell types for this gene, we can safely just plot overall isoform relative proportion and attribute any differences to Neurons. 
+```
 gene <- "Ap3s1"
 
 # Isoform ratio
@@ -265,7 +288,7 @@ p3 <- df %>%
   labs(title = "Other Regions", x = NULL, y = NULL, color = "Ratio")
 
 
-p1 
+p1
 p2 + p3
 
 
