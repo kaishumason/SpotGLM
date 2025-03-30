@@ -67,3 +67,4 @@ Fits a generalized linear model (GLM) with deconvolution for spatial transcripto
 supporting Poisson, Gaussian, Negative Binomial, and Binomial families. Optimization is
 performed via gradient descent (or closed-form for Gaussian).
 }
+\keyword{internal}

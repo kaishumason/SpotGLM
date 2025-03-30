@@ -30,7 +30,7 @@
 #'   \item{fixed_coef}{Final fix coefficient matrix.}
 #' }
 #'
-#' @export
+#' @keywords internal
 spot_glm = function(
     X, y, lambda, family,
     beta_0 = matrix(0, ncol(X), ncol(lambda)),
@@ -1452,7 +1452,7 @@ run_model = function(y,X,lambda,family = "spot gaussian",beta_0 = NULL,fix_coef 
 #' @import MASS
 #' @importFrom LaplacesDemon invlogit logit
 #' @export
-run_spot_glm_windows = function(Y,X,lambda,family = "spot gaussian",beta_0 = NULL,fix_coef = NULL,offset = NULL,
+run_model_parallel_windows = function(Y,X,lambda,family = "spot gaussian",beta_0 = NULL,fix_coef = NULL,offset = NULL,
                         initialization = "full",G = 0.1,num_cores = 1, min_deconv = 0.1,min_freq = 50,
                         CT = NULL, weights = NULL,ct_cov_weights = NULL,
                         n_epochs = 100,batch_size = 500,learning_rate = 1,max_diff = 1-1e-6, improvement_threshold = 1e-6,
@@ -1603,7 +1603,7 @@ run_spot_glm_windows = function(Y,X,lambda,family = "spot gaussian",beta_0 = NUL
 #' @importFrom LaplacesDemon invlogit logit
 #' @importFrom pbmcapply pbmclapply
 #' @export
-run_spot_glm_mac = function(Y, X, lambda, family = "spot gaussian", beta_0 = NULL, fix_coef = NULL,
+run_model_parallel_mac = function(Y, X, lambda, family = "spot gaussian", beta_0 = NULL, fix_coef = NULL,
                                 initialization = "full", G = 0.1, num_cores = 1,offset = NULL,
                                  min_deconv = 0.1, min_freq = 50, CT = NULL, weights = NULL, ct_cov_weights = NULL,
                                  n_epochs = 100,batch_size = 500, learning_rate = 1, max_diff = 1 - 1e-6, improvement_threshold = 1e-6,
