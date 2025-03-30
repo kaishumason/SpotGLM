@@ -3,9 +3,14 @@ Type: Package
 Title: SpotGLM: A package for cell type specific differential testing of spatial-omic data
 Version: 0.1.0
 Author: Kaishu Mason
-Maintainer: kaishumason2@gmail.com
+Maintainer: Kaishu Mason <kaishumason2@gmail.com>
 Description: More about what it does (maybe more than one line)
-    SpotGLM is a mixture based generalized linear model for analyzing spatial-comic data comprised of multiple cells. 
 License: MIT
 Encoding: UTF-8
 LazyData: true
+RoxygenNote: 7.3.2
+Roxygen: list(markdown = TRUE)
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr

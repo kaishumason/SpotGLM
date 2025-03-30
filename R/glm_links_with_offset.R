@@ -1,22 +1,63 @@
 
+#' Negative Binomial Log-Likelihood
+#'
+#' Computes the negative log-likelihood for the Negative Binomial distribution.
+#'
+#' @param x Vector of observed counts.
+#' @param mu Vector of expected means.
+#' @param disp Dispersion parameter.
+#'
+#' @return Negative log-likelihood value.
 #' @export
 nb_lik = function (x, mu, disp)
 {
   return(-sum(dnbinom(x = x, size = disp, mu = mu, log = TRUE)))
 }
 
+
+
+#' Gaussian Log-Likelihood
+#'
+#' Computes the negative log-likelihood for the Gaussian distribution.
+#'
+#' @param x Vector of observed values.
+#' @param mu Vector of predicted means.
+#' @param sigma Standard deviation.
+#'
+#' @return Negative log-likelihood value.
 #' @export
 gaussian_lik = function (x, mu, sigma)
 {
   return(-sum(dnorm(x = x, sd = sigma, mean = mu, log = TRUE)))
 }
 
+
+
+#' Poisson Log-Likelihood
+#'
+#' Computes the negative log-likelihood for the Poisson distribution.
+#'
+#' @param x Vector of observed counts.
+#' @param mu Vector of predicted means (Poisson rates).
+#'
+#' @return Negative log-likelihood value.
 #' @export
 poisson_lik = function (x, mu)
 {
   return(-sum(dpois(x = x, lambda = mu, log = TRUE)))
 }
 
+
+
+#' Binomial Log-Likelihood
+#'
+#' Computes the negative log-likelihood for the Binomial distribution.
+#'
+#' @param x Vector of observed successes.
+#' @param mu Vector of predicted probabilities.
+#' @param num_obs Number of trials for each observation.
+#'
+#' @return Negative log-likelihood value.
 #' @export
 binomial_lik = function (x, mu, num_obs)
 {
@@ -26,7 +67,23 @@ binomial_lik = function (x, mu, num_obs)
 
 
 
-
+#' Custom GLM Object: Spot Poisson
+#'
+#' Defines a Poisson-based GLM family object tailored for modeling spatial transcriptomics
+#' count data using deconvolution. Includes link functions, marginal mean, likelihood,
+#' gradient computation, and prediction utilities.
+#'
+#' @format A list of class-specific functions:
+#' \describe{
+#'   \item{\code{link}}{Link and inverse link functions with derivatives.}
+#'   \item{\code{marginal_mu}}{Marginal mean function.}
+#'   \item{\code{original_class}}{Base GLM family used (Poisson).}
+#'   \item{\code{predict}}{Predict means from \code{X}, \code{beta}, and \code{lambda}.}
+#'   \item{\code{likelihood}}{Negative log-likelihood function.}
+#'   \item{\code{grad}}{Gradient function with respect to beta.}
+#' }
+#'
+#' @export
 #spot poisson class
 spot_poisson = vector("list",3)
 names(spot_poisson) = c("link","marginal_mu","original_class")
@@ -38,10 +95,10 @@ spot_poisson[["link"]] <- function(C,lambda,offset = rep(0,length(C))) {
     A = mu-C*exp(offset)
     A = pmax(A,1e-3)
     B = lambda*exp(offset)
-    print(paste("A:", A[1:10]))  # Monitor A values
-    print(paste("B:", B[1:10]))  # Monitor B values
+    #print(paste("A:", A[1:10]))  # Monitor A values
+    #print(paste("B:", B[1:10]))  # Monitor B values
     if(mean(is.na(log(A/B))) > 0){
-      print("errors")
+      #print("errors")
     }
     return(log(A/B))
   }
@@ -107,7 +164,8 @@ spot_poisson[["grad"]] = function(X,y,beta,lambda,offset = rep(0,length(y))){
   grad_beta = beta * 0
   # Compute weights matrix for all observations and components
   weights = -lambda * CT_means + y * (1 / total_means) * lambda * CT_means  # Vectorized computation for weights
-
+  #print(dim(weights))
+  #print(dim(t(X)))
   # Batch computation of gradients
   grad_beta = t(X) %*% weights  # Computes all gradients at once
   return(list(grad = grad_beta,weights = weights))
@@ -119,7 +177,22 @@ spot_poisson[["grad"]] = function(X,y,beta,lambda,offset = rep(0,length(y))){
 
 
 
-
+#' Custom GLM Object: Spot Gaussian
+#'
+#' Defines a Gaussian-based GLM family object for spatial transcriptomics data,
+#' incorporating link functions and gradient-based optimization for continuous-valued
+#' expression deconvolution.
+#'
+#' @format A list of class-specific functions:
+#' \describe{
+#'   \item{\code{link}}{Link and inverse link functions with derivatives.}
+#'   \item{\code{marginal_mu}}{Marginal mean function.}
+#'   \item{\code{original_class}}{Base GLM family used (Gaussian).}
+#'   \item{\code{predict}}{Predict means from \code{X}, \code{beta}, and \code{lambda}.}
+#'   \item{\code{likelihood}}{Negative log-likelihood function.}
+#' }
+#'
+#' @export
 #spotgaussian  class
 spot_gaussian = vector("list",3)
 names(spot_gaussian) = c("link","marginal_mu","original_class")
@@ -175,6 +248,24 @@ spot_gaussian[["likelihood"]] = gaussian_lik
 
 
 
+
+#' Custom GLM Object: Spot Binomial
+#'
+#' Defines a Binomial-based GLM family object for modeling bounded expression data
+#' or proportions in spatial transcriptomics. Supports deconvolution and optimization
+#' with logistic link functions.
+#'
+#' @format A list of class-specific functions:
+#' \describe{
+#'   \item{\code{link}}{Logistic-based link and inverse link functions with derivatives.}
+#'   \item{\code{marginal_mu}}{Marginal mean function (inverse logit).}
+#'   \item{\code{original_class}}{Base GLM family used (Binomial).}
+#'   \item{\code{predict}}{Predict probabilities from \code{X}, \code{beta}, and \code{lambda}.}
+#'   \item{\code{likelihood}}{Negative log-likelihood function.}
+#'   \item{\code{grad}}{Gradient function with respect to beta.}
+#' }
+#'
+#' @export
 #spot binomial class
 spot_binomial = vector("list",3)
 names(spot_binomial) = c("link","marginal_mu","original_class")
@@ -183,7 +274,7 @@ names(spot_binomial) = c("link","marginal_mu","original_class")
 spot_binomial[["link"]] <- function(C,lambda) {
   ## link y is eta = linkfun(E(Y|X))
   linkfun <- function(mu){
-    print(mu)
+    #print(mu)
     A = mu-C
     B = lambda
     return(LaplacesDemon::logit(A/B))
@@ -264,6 +355,23 @@ spot_binomial[["grad"]] = function(X,y,beta,lambda,weights){
 
 
 
+#' Custom GLM Object: Spot Negative Binomial
+#'
+#' Defines a Negative Binomial-based GLM family object suitable for overdispersed
+#' spatial transcriptomics count data. Incorporates flexible link functions and
+#' gradient computations for both regression coefficients and dispersion parameters.
+#'
+#' @format A list of class-specific functions:
+#' \describe{
+#'   \item{\code{link}}{Negative binomial link and inverse link functions with derivatives.}
+#'   \item{\code{marginal_mu}}{Marginal mean function.}
+#'   \item{\code{original_class}}{Base GLM family used (Poisson or Negative Binomial).}
+#'   \item{\code{predict}}{Predict means from \code{X}, \code{beta}, and \code{lambda}.}
+#'   \item{\code{likelihood}}{Negative log-likelihood function.}
+#'   \item{\code{grad}}{Gradient function with respect to beta and dispersion.}
+#' }
+#'
+#' @export
 
 #spot negative binomial class
 spot_negative_binomial = vector("list",3)
