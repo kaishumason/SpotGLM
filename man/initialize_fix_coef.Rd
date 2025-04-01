@@ -10,8 +10,7 @@ initialize_fix_coef(
   fix_coef = matrix(FALSE, ncol(X), ncol(lambda)),
   weights = NULL,
   min_deconv = 0.1,
-  min_freq = 100,
-  intercept_col = NULL
+  min_freq = 100
 )
 }
 \description{

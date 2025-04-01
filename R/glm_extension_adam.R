@@ -223,7 +223,6 @@ spot_glm = function(
         disp = dispersion,
         weights = weights[spots]
       )
-      
       while(recompute_gradients) {
         # Scale by batch size to keep consistent step
         grad      = (1 / length(spots)) * G$beta_grad
@@ -328,7 +327,10 @@ spot_glm = function(
         
         # Now you can compare the new vs. old batch likelihood:
         lik_diff = lik_new_batch / lik_old_batch
-        
+        if(is.na(lik_diff)){
+          break
+        }
+       
         
         # If overshoot or small improvement, reduce step and try again
         if((lik_diff > 1 + 1e-3) | (lik_diff > 1 + 1e-6 & epoch > 2)) {
@@ -992,6 +994,7 @@ run_single_cell = function(y,X,lambda,sc_family = "gaussian",offset = rep(0,leng
     cells = which(CT == r)
     if(length(cells) < 2500){
       cells = order(lambda[,r],decreasing = T)[1:2500]
+      cells = cells[lambda[cells,r] >= 0.1]
     }
     cells = cells[is.na(cells) == F]
     #get how often a covaraite appears
@@ -1017,10 +1020,7 @@ run_single_cell = function(y,X,lambda,sc_family = "gaussian",offset = rep(0,leng
     weights_CT = weights[cells]
     #run regular regression 
     if(sc_family == "negative binomial"){
-      lm1 =suppressWarnings( MASS::glm.nb(
-        obs ~ offset(offset_CT) + features - 1,
-        weights = weights_CT
-      ))
+      lm1 = suppressWarnings(glm(obs/weights_CT~offset(offset_CT) + features-1, family = "poisson",weights = weights_CT*lambda[cells,r]))
     }else if(sc_family == "binomial"){
       lm1 = suppressWarnings(glm(obs/weights_CT~ features-1, family = sc_family,weights = weights_CT*lambda[cells,r]))
     }else{
@@ -1154,7 +1154,7 @@ initialize_beta_full = function(y,X,lambda,family,beta_0, offset = rep(0,length(
 #'
 #' @keywords internal
 initialize_fix_coef = function(X,lambda,fix_coef = matrix(FALSE,ncol(X),ncol(lambda)),
-                               weights = NULL,min_deconv = 0.1,min_freq = 100,intercept_col = NULL){
+                               weights = NULL,min_deconv = 0.1,min_freq = 100){
   #number of cell types
   nCT = ncol(lambda)
   p = ncol(X)
@@ -1177,14 +1177,8 @@ initialize_fix_coef = function(X,lambda,fix_coef = matrix(FALSE,ncol(X),ncol(lam
       next
     }
     # Determine covariates with sufficient variation
-    good_cov <- which(apply(X[good_spots_ct[[j]],,drop = FALSE],2,function(x){length(x) - max(table(x))}) > min_freq)
+    good_cov <- which(apply(X[good_spots_ct[[j]],,drop = FALSE],2,function(x){sum(x!=0)}) > min_freq)
     bad_cov <- setdiff(1:p, good_cov)
-    
-    # Add intercept if needed
-    if (is.null(intercept_col) == F) {
-      good_cov <- unique(c(intercept_col, good_cov))
-      bad_cov <- setdiff(1:p, good_cov)
-    }
     
     # Update fixed coefficients
     if (length(bad_cov) > 0) {
@@ -1225,7 +1219,7 @@ initialize_fix_coef = function(X,lambda,fix_coef = matrix(FALSE,ncol(X),ncol(lam
 #' @param beta_0 Optional initial coefficient matrix (covariates × cell types).
 #' @param fix_coef Logical matrix (covariates × cell types) indicating coefficients to fix during optimization.
 #' @param offset Optional numeric vector (same length as `y`), used for Poisson or NB normalization.
-#' @param initialization Coefficient initialization method: `"intercept"` or `"full"`.
+#' @param initialization Boolean if initialization via single cell approximation should be performed. Default TRUE.
 #' @param min_deconv Minimum required deconvolution value for a spot to be included.
 #' @param min_freq Minimum frequency for a covariate to be retained in the model.
 #' @param CT Optional vector of dominant cell type labels per spot.
@@ -1237,7 +1231,6 @@ initialize_fix_coef = function(X,lambda,fix_coef = matrix(FALSE,ncol(X),ncol(lam
 #' @param max_diff Convergence threshold based on likelihood ratio.
 #' @param improvement_threshold Minimum required improvement in likelihood ratio between epochs.
 #' @param max_conv Number of consecutive low-improvement epochs before convergence is assumed.
-#' @param intercept_col Optional index of the intercept column in `X`.
 #' @param min_reads_per_1000 Minimum expression threshold (in reads per 1000) for filtering weak coefficients.
 #'
 #' @return A list containing:
@@ -1256,10 +1249,10 @@ initialize_fix_coef = function(X,lambda,fix_coef = matrix(FALSE,ncol(X),ncol(lam
 #' @export
 
 run_model = function(y,X,lambda,family = "spot gaussian",beta_0 = NULL,fix_coef = NULL,
-                     offset = rep(0,length(y)),initialization = "full", min_deconv = 0.1,min_freq = 50,
+                     offset = rep(0,length(y)),initialization = T, min_deconv = 0.1,min_freq = 50,
                      CT = NULL, weights = rep(1,length(y)),ct_cov_weights = rep(1,ncol(lambda)),
                      n_epochs = 100,batch_size = 500,learning_rate = 1,max_diff = 1-1e-6, improvement_threshold = 1e-6,
-                     max_conv = 10,intercept_col = NULL,
+                     max_conv = 10,
                      min_reads_per_1000 = 1){
   #Step 0: Pre-processing 
   if(is.null(weights)){
@@ -1317,47 +1310,27 @@ run_model = function(y,X,lambda,family = "spot gaussian",beta_0 = NULL,fix_coef 
       stop("Initial beta matrix must be of dimension ncol(X) by ncol(lambda)")
     }
     
-    if(initialization == "intercept"){
-      if(is.null(intercept_col)){
-        stop("When initializing intercept, intercept column must be specified.")
-      }
-      #first get single cell approximation
-      initial_run= spotglm:::initialize_beta_intercept_single_cell(y = y, X = X, lambda = lambda,beta = beta_0,
-                                                                   sc_family = sc_family,offset = offset,
-                                                                   weights = weights,fix_coef = fix_coef,CT = CT,min_freq = min_freq,intercept_ind = intercept_col)
-      beta_0 = initial_run$beta_0
-      fix_coef = initial_run$fix_coef
-      #edit fix coef matrix 
-      
-    }else if(initialization == "full"){
-      #first get single cell approximation
-      initial_run = spotglm:::initialize_beta_full_single_cell(y = y, X = X, lambda = lambda,beta = beta_0,
-                                                               sc_family = sc_family,offset = offset,
-                                                               weights = weights,fix_coef = fix_coef,CT = CT,min_freq = min_freq,intercept_ind = intercept_col)
-      beta_0 = initial_run$beta_0
-      fix_coef = initial_run$fix_coef
-      #edit fix coef matrix 
-    }else{
+    
+    
+    
+    if(initialization == T){
+      initial= spotglm:::run_single_cell(y = y, X = X, lambda = lambda,sc_family = sc_family,offset = offset,
+                                                                   weights = weights,fix_coef = fix_coef,CT = CT,min_freq = min_freq)
+      beta_0 = initial$beta
+    }else {
       print("No initialization chosen. Must be one of intercept or full.")
     }
     #get T statistics of initialization and fix weak betas
     
-    if(family == "spot poisson" | family == "spot negative binomial"){
-      fix_coef[(exp(beta_0)*1000) < min_reads_per_1000] = TRUE
-    }
-    
-    #if cell type intercept is too small, remove it 
-    if(is.null(intercept_col) == F){
-      bad_ct = which(fix_coef[intercept_col,] == TRUE)
-      if(length(bad_ct) > 0){
-        fix_coef[,bad_ct] = TRUE
-      }
-    }
+    #if(family == "spot poisson" | family == "spot negative binomial"){
+      #fix_coef[(exp(beta_0)*1000) < min_reads_per_1000] = TRUE
+      
+    #}
     
     #Step 2: Get fix coef and good beta
     #get fixed coefficients 
     coef_info = spotglm:::initialize_fix_coef(X = X, lambda = lambda,fix_coef = fix_coef,
-                                              weights = weights,min_deconv = min_deconv, min_freq = min_freq, intercept_col = intercept_col)
+                                              weights = weights,min_deconv = min_deconv, min_freq = min_freq)
     fix_coef = coef_info$fix_coef
     
   }
@@ -1367,9 +1340,6 @@ run_model = function(y,X,lambda,family = "spot gaussian",beta_0 = NULL,fix_coef 
   t1 = Sys.time()
   LR = learning_rate
   conv = FALSE
-  #result = spot_glm(X = X,y = y,lambda = lambda,beta_0 = beta_0,family = family,offset = offset,fix_coef = fix_coef,
-                      #weights = weights,learning_rate = LR,
-                      #max_gd_steps = max_gd_steps,max_diff = max_diff)
   result = spot_glm(X = X,y = y,lambda = lambda,beta_0 = beta_0,family = family,offset = offset,fix_coef = fix_coef,
           weights = weights,learning_rate = LR,
           n_epochs = n_epochs,batch_size = batch_size, max_diff = max_diff,improvement_threshold = improvement_threshold,max_conv = max_conv)
@@ -1410,7 +1380,7 @@ run_model = function(y,X,lambda,family = "spot gaussian",beta_0 = NULL,fix_coef 
 #' @param beta_0 Optional initial coefficient matrix (covariates × cell types).
 #' @param fix_coef Optional logical matrix indicating which coefficients to fix (same dimensions as `beta_0`).
 #' @param offset Optional numeric vector (length equal to number of spots).
-#' @param initialization Coefficient initialization method: `"intercept"` or `"full"`.
+#' @param initialization Boolean if initialization via single cell approximation should be performed. Default TRUE.
 #' @param G Maximum chunk size (in GB) to control memory usage during parallelization.
 #' @param num_cores Number of CPU cores to use in parallel.
 #' @param min_deconv Minimum required deconvolution value per spot.
@@ -1424,7 +1394,6 @@ run_model = function(y,X,lambda,family = "spot gaussian",beta_0 = NULL,fix_coef 
 #' @param max_diff Convergence threshold based on likelihood improvement ratio.
 #' @param improvement_threshold Minimum improvement ratio between epochs.
 #' @param max_conv Number of low-improvement epochs before stopping.
-#' @param intercept_col Optional column index in `X` representing the intercept.
 #'
 #' @return A named list of model results (one per gene), each containing:
 #' \describe{
@@ -1452,11 +1421,11 @@ run_model = function(y,X,lambda,family = "spot gaussian",beta_0 = NULL,fix_coef 
 #' @import MASS
 #' @importFrom LaplacesDemon invlogit logit
 #' @export
-run_model_parallel_windows = function(Y,X,lambda,family = "spot gaussian",beta_0 = NULL,fix_coef = NULL,offset = NULL,
+run_model_parallel_windows = function(Y,X,lambda,family = T,beta_0 = NULL,fix_coef = NULL,offset = NULL,
                         initialization = "full",G = 0.1,num_cores = 1, min_deconv = 0.1,min_freq = 50,
                         CT = NULL, weights = NULL,ct_cov_weights = NULL,
                         n_epochs = 100,batch_size = 500,learning_rate = 1,max_diff = 1-1e-6, improvement_threshold = 1e-6,
-                        max_conv = 10,intercept_col = NULL){
+                        max_conv = 10){
   
   #get offset values
   if(is.null(offset) == TRUE & family %in% c("spot poisson","spot negative binomial")){
@@ -1591,7 +1560,7 @@ run_model_parallel_windows = function(Y,X,lambda,family = "spot gaussian",beta_0
 #' Fits a Spot-GLM model for multiple responses (e.g., genes) in parallel using memory-safe chunking
 #' and `pbmclapply`, which relies on `mclapply`. Only available on Unix-based systems.
 #'
-#' @inheritParams run_spot_glm_windows
+#' @inheritParams run_model_parallel_windows
 #'
 #' @details
 #' This version uses `pbmcapply::pbmclapply` for parallelism. On Windows systems,
@@ -1604,10 +1573,10 @@ run_model_parallel_windows = function(Y,X,lambda,family = "spot gaussian",beta_0
 #' @importFrom pbmcapply pbmclapply
 #' @export
 run_model_parallel_mac = function(Y, X, lambda, family = "spot gaussian", beta_0 = NULL, fix_coef = NULL,
-                                initialization = "full", G = 0.1, num_cores = 1,offset = NULL,
+                                initialization = T, G = 0.1, num_cores = 1,offset = NULL,
                                  min_deconv = 0.1, min_freq = 50, CT = NULL, weights = NULL, ct_cov_weights = NULL,
                                  n_epochs = 100,batch_size = 500, learning_rate = 1, max_diff = 1 - 1e-6, improvement_threshold = 1e-6,
-                                max_conv = 10, intercept_col = NULL) {
+                                max_conv = 10) {
   #get offset values
   if(is.null(offset) == TRUE & family %in% c("spot poisson","spot negative binomial")){
     offset = log(Matrix::rowSums(Y))
@@ -1677,7 +1646,7 @@ run_model_parallel_mac = function(Y, X, lambda, family = "spot gaussian", beta_0
           initialization = initialization, min_deconv = min_deconv, min_freq = min_freq,
           CT = CT, weights = WEIGHTS, ct_cov_weights = CT_COVARIATE_WEIGHTS,
           n_epochs = n_epochs,batch_size = batch_size, learning_rate = learning_rate,
-          max_diff = max_diff, intercept_col = intercept_col,improvement_threshold = improvement_threshold,max_conv = max_conv
+          max_diff = max_diff,improvement_threshold = improvement_threshold,max_conv = max_conv
         )
       }, error = function(e) {
         warning(paste("Gene", indices[i], "failed:", conditionMessage(e)))
@@ -1705,8 +1674,73 @@ run_model_parallel_mac = function(Y, X, lambda, family = "spot gaussian", beta_0
 
 
 
-
-
+#' @keywords internal
+compute_effective_niche = function(coord,data,sigma,batch_size = 1000, cutoff = 0.05)
+{
+  #initialize EN matrix
+  EN = matrix(NA, nrow(coord), ncol(data))
+  #initialize KNN list
+  rownames(EN) = rownames(coord)
+  colnames(EN) = colnames(data)
+  #get number of batches
+  C = nrow(coord)
+  #split cells into rectangles. #rectangles = C/batch_size
+  num_iter = ceiling(C/batch_size)
+  #get number of rows and number of columns
+  rows = ceiling(sqrt(num_iter))
+  row_blocks = seq(min(coord[,2]),max(coord[,2]),length.out = rows+1)
+  cols = ceiling(num_iter/rows)
+  col_blocks = seq(min(coord[,1]),max(coord[,1]),length.out = cols+1)
+  print(paste0("Number of rows: ",rows))
+  print(paste0("Number of cols: ",cols))
+  possible_inds = c(1:nrow(coord))
+  for(row in c(1:rows)){
+    for(col in c(1:cols)){
+      if(length(possible_inds) == 0){
+        next
+      }
+      print(paste0("Row: ",row ," Col ",col))
+      #subset coord into rows and columns
+      row_block = c(row_blocks[row],row_blocks[row+1])
+      col_block = c(col_blocks[col],col_blocks[col+1])
+      #get indicies that are encompassed
+      inds_ = which(spatstat.utils::inside.range(coord[possible_inds,1],col_block) & spatstat.utils::inside.range(coord[possible_inds,2],row_block))
+      if(length(inds_) == 0){
+        next
+      }
+      inds = possible_inds[inds_]
+      possible_inds = possible_inds[-inds_]
+      #get range of coordiantes
+      range_x = range(coord[inds,1])
+      range_y = range(coord[inds,2])
+      #add sigma to each side (i.e. we are guarnateed that matched points are within the new interval)
+      range_x[1] = range_x[1] - sigma
+      range_x[2] = range_x[2] + sigma
+      
+      range_y[1] = range_y[1] - sigma
+      range_y[2] = range_y[2] + sigma
+      #get candidate cells; cells which may be near a cell in set
+      candidate = which(spatstat.utils::inside.range(coord[,1],range_x) & spatstat.utils::inside.range(coord[,2],range_y))
+      #compute distance between cells in set and candidate cells
+      D = Rfast::dista(xnew = as.matrix(coord[inds,], ncol = 2, byrow = T), x = coord[candidate,], type = "euclidean", trans = T)
+      #if we want to use nearest neighbors definitely use this one instead
+      #FNN::get.knnx(deconv_quad$reference_embed,deconv_quad$query_embed, 100)
+      #set those that are closer than sigma equal to 1
+      D[D < sigma] = 1
+      #else equal to 0
+      D[D>sigma] = 0
+      #D[D < cutoff] = 0
+      #call this matrix neighbors
+      neighbors = D
+      #compute sum of expression in neighborhood
+      A = (neighbors%*%data[candidate,])
+      for(k in c(1:length(inds))){
+        EN[inds[k],] = A[k,]
+      }
+    }
+  }
+  return(EN)
+}
 
 
 

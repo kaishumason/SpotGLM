@@ -11,7 +11,7 @@ run_model_parallel_mac(
   family = "spot gaussian",
   beta_0 = NULL,
   fix_coef = NULL,
-  initialization = "full",
+  initialization = T,
   G = 0.1,
   num_cores = 1,
   offset = NULL,
@@ -25,9 +25,52 @@ run_model_parallel_mac(
   learning_rate = 1,
   max_diff = 1 - 1e-06,
   improvement_threshold = 1e-06,
-  max_conv = 10,
-  intercept_col = NULL
+  max_conv = 10
 )
+}
+\arguments{
+\item{Y}{Response matrix (spots × responses).}
+
+\item{X}{Covariate matrix (spots × covariates).}
+
+\item{lambda}{Deconvolution matrix (spots × cell types).}
+
+\item{family}{The GLM family to use. One of: \code{"spot gaussian"}, \code{"spot poisson"},
+\code{"spot negative binomial"}, or \code{"spot binomial"}.}
+
+\item{beta_0}{Optional initial coefficient matrix (covariates × cell types).}
+
+\item{fix_coef}{Optional logical matrix indicating which coefficients to fix (same dimensions as \code{beta_0}).}
+
+\item{initialization}{Boolean if initialization via single cell approximation should be performed. Default TRUE.}
+
+\item{G}{Maximum chunk size (in GB) to control memory usage during parallelization.}
+
+\item{num_cores}{Number of CPU cores to use in parallel.}
+
+\item{offset}{Optional numeric vector (length equal to number of spots).}
+
+\item{min_deconv}{Minimum required deconvolution value per spot.}
+
+\item{min_freq}{Minimum frequency for a covariate to be retained in the model.}
+
+\item{CT}{Optional vector of dominant cell types per spot.}
+
+\item{weights}{Optional observation-level weight matrix (spots × genes).}
+
+\item{ct_cov_weights}{Optional cell-type-specific weight matrix (cell types × genes).}
+
+\item{n_epochs}{Number of training epochs.}
+
+\item{batch_size}{Size of each mini-batch.}
+
+\item{learning_rate}{Initial learning rate.}
+
+\item{max_diff}{Convergence threshold based on likelihood improvement ratio.}
+
+\item{improvement_threshold}{Minimum improvement ratio between epochs.}
+
+\item{max_conv}{Number of low-improvement epochs before stopping.}
 }
 \description{
 Fits a Spot-GLM model for multiple responses (e.g., genes) in parallel using memory-safe chunking

@@ -12,7 +12,7 @@ run_model(
   beta_0 = NULL,
   fix_coef = NULL,
   offset = rep(0, length(y)),
-  initialization = "full",
+  initialization = T,
   min_deconv = 0.1,
   min_freq = 50,
   CT = NULL,
@@ -24,7 +24,6 @@ run_model(
   max_diff = 1 - 1e-06,
   improvement_threshold = 1e-06,
   max_conv = 10,
-  intercept_col = NULL,
   min_reads_per_1000 = 1
 )
 }
@@ -43,7 +42,7 @@ run_model(
 
 \item{offset}{Optional numeric vector (same length as \code{y}), used for Poisson or NB normalization.}
 
-\item{initialization}{Coefficient initialization method: \code{"intercept"} or \code{"full"}.}
+\item{initialization}{Boolean if initialization via single cell approximation should be performed. Default TRUE.}
 
 \item{min_deconv}{Minimum required deconvolution value for a spot to be included.}
 
@@ -66,8 +65,6 @@ run_model(
 \item{improvement_threshold}{Minimum required improvement in likelihood ratio between epochs.}
 
 \item{max_conv}{Number of consecutive low-improvement epochs before convergence is assumed.}
-
-\item{intercept_col}{Optional index of the intercept column in \code{X}.}
 
 \item{min_reads_per_1000}{Minimum expression threshold (in reads per 1000) for filtering weak coefficients.}
 }

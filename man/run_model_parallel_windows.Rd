@@ -8,7 +8,7 @@ run_model_parallel_windows(
   Y,
   X,
   lambda,
-  family = "spot gaussian",
+  family = T,
   beta_0 = NULL,
   fix_coef = NULL,
   offset = NULL,
@@ -25,8 +25,7 @@ run_model_parallel_windows(
   learning_rate = 1,
   max_diff = 1 - 1e-06,
   improvement_threshold = 1e-06,
-  max_conv = 10,
-  intercept_col = NULL
+  max_conv = 10
 )
 }
 \arguments{
@@ -45,7 +44,7 @@ run_model_parallel_windows(
 
 \item{offset}{Optional numeric vector (length equal to number of spots).}
 
-\item{initialization}{Coefficient initialization method: \code{"intercept"} or \code{"full"}.}
+\item{initialization}{Boolean if initialization via single cell approximation should be performed. Default TRUE.}
 
 \item{G}{Maximum chunk size (in GB) to control memory usage during parallelization.}
 
@@ -72,8 +71,6 @@ run_model_parallel_windows(
 \item{improvement_threshold}{Minimum improvement ratio between epochs.}
 
 \item{max_conv}{Number of low-improvement epochs before stopping.}
-
-\item{intercept_col}{Optional column index in \code{X} representing the intercept.}
 }
 \value{
 A named list of model results (one per gene), each containing:
