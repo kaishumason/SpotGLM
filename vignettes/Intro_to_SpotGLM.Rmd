@@ -27,8 +27,10 @@ We use the simulate data function in sparrow to simulate 100,000 spots with 8 ce
 $$Y_i \sim Pois(\sum_{t=1}^{T}\lambda_{i,t}\exp(X_i\beta^t + \log(1000)))$$
 Here $Y_i$ is the response (e.g. gene expression) for spot $i$, $X_i$ is the covariate vector for spot $i$,$t$ denotes a cell type, $\lambda_{i,t}$ is the deconvolution estimate for cell type $t$ in spot $i$, and $\beta^t$ is the effect vector for cell type $t$. Note that each cell type gets a different effect vector. Also note that the columns of $X$ are bounded between 0 and 1. Bounding all columns between some interval is recommended to prevent scaling issues and to make interpretation easier. 
 ```
-data = sparrow::simulate_data(n = 1e5, nct = 8,effect_scale = 1/5,
-                              intercept_scale = 4,
+data = sparrow::simulate_data(n = 1e5, nct = 8,family = "poisson",
+                              effect_range = c(-0.2,0.2),
+                              min_effect = 0.05,
+                              intercept_range = c(-6,-4),
                               library_size = 1000, spot_ct = 2,
                               p = 8,num_null = 2,prob_ct = NULL)
 
@@ -36,9 +38,6 @@ colnames(data$X) = paste0("effect_",c(1:ncol(data$X))-1)
 colnames(data$X)[1] = "intercept"
 
 colnames(data$lambda) = paste0("cell_type_",c(1:ncol(data$lambda)))
-
-
-
 ```
 
 
@@ -72,9 +71,7 @@ We fit a spotGLM using the `run_model()` function. This function takes several a
 - `X`: A design matrix of covariates or predictors.  
 - `family`: A description of the error distribution and link function to be used in the model (e.g., `"spot poisson"` or `"spot binomial"`).
 - `offset`: For poisson/negative binomial models: An optional numeric vector to be used as an offset in the model (useful for normalization or exposure adjustment).Generally this is set to be the log of the library size for each spot. 
-- `initialization` : What type of initialization to use. "intercept" only fits the intercept for each cell type, setting other parameters equal to 0 to start. Full, fits one value for all parameters for each cell type. If neither are preferable, provide a custom initialization in the `beta_0` argument and set `initialization` to "none
-- `intercept_col` = 1: If `initialization` = "intercept", which column in `X` corresponds to the intercept.
--`min_reads_per_1000`: During initialization, if family is "spot poisson" or "spot negative binomial" and expected reads per 1000 for a cell type is less than this value, parameters will not be fit for this cell types.
+- `initialization` :  Boolean if initialization via single cell approximation should be performed. Default TRUE.
 - `learning_rate`: The learning rate used for gradient descent. It is advised to pick a large value since the learning rate changes dynamically throughout fitting. Default value is 1. 
 - `n_epochs`: The number of epochs to use in fitting. Default value 50.
 -`batch_size`: Batch size to use in mini-batch gradient descent. Default value 128
@@ -126,7 +123,7 @@ model = spotglm::run_model(y = data$y,X = data$X,lambda = data$lambda,
                            family = "spot poisson",offset=rep(log(1000),
                           length(data$y)),n_epochs = 100,batch_size= 500,
                           learning_rate = 1,max_diff = 1-1e-6,
-                          initialization = "intercept",intercept_col = c(1))
+                          initialization = T)
 
 ```
 

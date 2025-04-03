@@ -152,7 +152,7 @@ spot_glm = function(
   # Negative binomial => estimate initial dispersion
   if(family == "spot negative binomial"){
     fitted_vals = family_model[["predict"]](X, beta_0, lambda, offset)$total
-    A = optimize(nb_lik, x = y, mu = fitted_vals, lower = 0.05, upper = 10)
+    A = optimize(nb_lik, x = y, mu = fitted_vals, lower = 0.05, upper = 100)
     dispersion = A$minimum
   } else {
     dispersion = 1e8
@@ -242,17 +242,18 @@ spot_glm = function(
         grad_update   = learning_rate * m_beta_hat / (sqrt(v_beta_hat) + epsilon)
         beta_new_temp = beta_new + grad_update
         
-        if(family == "spot negative binomial"){
-          m_disp_temp  = beta_1 * m_disp + (1 - beta_1) * disp_grad
-          v_disp_temp  = beta_2 * v_disp + (1 - beta_2) * (disp_grad^2)
-          m_disp_hat   = m_disp_temp / (1 - beta_1^t_temp)
-          v_disp_hat   = v_disp_temp / (1 - beta_2^t_temp)
-          disp_update  = learning_rate * m_disp_hat / (sqrt(v_disp_hat) + epsilon)
-          dispersion_temp = dispersion + disp_update
-          dispersion_temp = max(dispersion_temp, 0.05)
-        } else {
-          dispersion_temp = dispersion
-        }
+        #if(family == "spot negative binomial"){
+          #m_disp_temp  = beta_1 * m_disp + (1 - beta_1) * disp_grad
+          #v_disp_temp  = beta_2 * v_disp + (1 - beta_2) * (disp_grad^2)
+          #m_disp_hat   = m_disp_temp / (1 - beta_1^t_temp)
+          #v_disp_hat   = v_disp_temp / (1 - beta_2^t_temp)
+          #disp_update  = learning_rate * m_disp_hat / (sqrt(v_disp_hat) + epsilon)
+          #dispersion_temp = dispersion + disp_update
+          #print(dispersion_temp)
+          #dispersion_temp = max(dispersion_temp, 0.05)
+        #} else {
+          #dispersion_temp = dispersion
+        #}
         
         # Here we do a line-search style step check using the FULL data
         # If you'd rather skip re-checking on full data every mini-batch
@@ -313,7 +314,7 @@ spot_glm = function(
             offset[spots]
           )$total
           
-          lik_new_batch = -nb_lik(y[spots], pred_spots_new, dispersion_temp)
+          lik_new_batch = -nb_lik(y[spots], pred_spots_new, dispersion)
           
         } else if (family == "spot binomial") {
           pred_spots_new = family_model[["predict"]](
@@ -340,14 +341,14 @@ spot_glm = function(
           # Accept update
           lik_diff           = min(lik_diff, 1 / lik_diff)
           beta_new           = beta_new_temp
-          dispersion         = dispersion_temp
+          #dispersion         = dispersion_temp
           m_beta             = m_beta_temp
           v_beta             = v_beta_temp
           
-          if(family == "spot negative binomial"){
-            m_disp          = m_disp_temp
-            v_disp          = v_disp_temp
-          }
+          #if(family == "spot negative binomial"){
+            #m_disp          = m_disp_temp
+            #v_disp          = v_disp_temp
+          #}
           
           t = t_temp
           recompute_gradients = FALSE
@@ -387,6 +388,17 @@ spot_glm = function(
     }
     
     lik_ratio = lik_ratio_test
+    
+    #compute new dispersion
+    if(family == "spot negative binomial"){
+      fitted_vals = family_model[["predict"]](X, beta_new, lambda, offset)$total
+      A = optimize(nb_lik, x = y, mu = fitted_vals, lower = 0.05, upper = 100)
+      dispersion = A$minimum
+    } else {
+      dispersion = 1e8
+    }
+    
+    
     # If ratio is near 1, improvement is small => possible convergence
     #  e.g. if ratio >= max_diff => improvement < some threshold
     if(lik_ratio >= max_diff | conv_counter > max_conv) {
@@ -1033,6 +1045,8 @@ run_single_cell = function(y,X,lambda,sc_family = "gaussian",offset = rep(0,leng
     std_err_mat[which(fix_coef[,r] == FALSE),r] = sqrt(V)
   }
   t2 = Sys.time()
+  #remove NAs
+  beta[is.na(beta)] = 0
   #print(t2-t1)
   return (list(beta_est = beta, stand_err_mat = std_err_mat,fix_coef = fix_coef))
 }
@@ -1231,7 +1245,6 @@ initialize_fix_coef = function(X,lambda,fix_coef = matrix(FALSE,ncol(X),ncol(lam
 #' @param max_diff Convergence threshold based on likelihood ratio.
 #' @param improvement_threshold Minimum required improvement in likelihood ratio between epochs.
 #' @param max_conv Number of consecutive low-improvement epochs before convergence is assumed.
-#' @param min_reads_per_1000 Minimum expression threshold (in reads per 1000) for filtering weak coefficients.
 #'
 #' @return A list containing:
 #' \describe{
@@ -1252,8 +1265,7 @@ run_model = function(y,X,lambda,family = "spot gaussian",beta_0 = NULL,fix_coef 
                      offset = rep(0,length(y)),initialization = T, min_deconv = 0.1,min_freq = 50,
                      CT = NULL, weights = rep(1,length(y)),ct_cov_weights = rep(1,ncol(lambda)),
                      n_epochs = 100,batch_size = 500,learning_rate = 1,max_diff = 1-1e-6, improvement_threshold = 1e-6,
-                     max_conv = 10,
-                     min_reads_per_1000 = 1){
+                     max_conv = 10){
   #Step 0: Pre-processing 
   if(is.null(weights)){
     weights = rep(1,length(y))
@@ -1317,21 +1329,12 @@ run_model = function(y,X,lambda,family = "spot gaussian",beta_0 = NULL,fix_coef 
       initial= spotglm:::run_single_cell(y = y, X = X, lambda = lambda,sc_family = sc_family,offset = offset,
                                                                    weights = weights,fix_coef = fix_coef,CT = CT,min_freq = min_freq)
       beta_0 = initial$beta
-    }else {
-      print("No initialization chosen. Must be one of intercept or full.")
     }
-    #get T statistics of initialization and fix weak betas
-    
-    #if(family == "spot poisson" | family == "spot negative binomial"){
-      #fix_coef[(exp(beta_0)*1000) < min_reads_per_1000] = TRUE
-      
-    #}
-    
     #Step 2: Get fix coef and good beta
     #get fixed coefficients 
-    coef_info = spotglm:::initialize_fix_coef(X = X, lambda = lambda,fix_coef = fix_coef,
-                                              weights = weights,min_deconv = min_deconv, min_freq = min_freq)
-    fix_coef = coef_info$fix_coef
+    #coef_info = spotglm:::initialize_fix_coef(X = X, lambda = lambda,fix_coef = fix_coef,
+                                              #weights = weights,min_deconv = min_deconv, min_freq = min_freq)
+    #fix_coef = coef_info$fix_coef
     
   }
  
@@ -1349,7 +1352,7 @@ run_model = function(y,X,lambda,family = "spot gaussian",beta_0 = NULL,fix_coef 
   #get standard errors for coefs
   std_err = rep(NA,nrow(result$vcov))
   for (j in c(1:nrow(result$vcov))){
-    std_err[j] = sqrt(result$vcov[j,j])
+    std_err[j] = suppressWarnings(sqrt(result$vcov[j,j]))
   }
   
   stand_err_mat = matrix(std_err,nrow = ncol(X),byrow = F)
@@ -1421,8 +1424,8 @@ run_model = function(y,X,lambda,family = "spot gaussian",beta_0 = NULL,fix_coef 
 #' @import MASS
 #' @importFrom LaplacesDemon invlogit logit
 #' @export
-run_model_parallel_windows = function(Y,X,lambda,family = T,beta_0 = NULL,fix_coef = NULL,offset = NULL,
-                        initialization = "full",G = 0.1,num_cores = 1, min_deconv = 0.1,min_freq = 50,
+run_model_parallel_windows = function(Y,X,lambda,family = "spot",beta_0 = NULL,fix_coef = NULL,offset = NULL,
+                        initialization = T,G = 0.1,num_cores = 1, min_deconv = 0.1,min_freq = 50,
                         CT = NULL, weights = NULL,ct_cov_weights = NULL,
                         n_epochs = 100,batch_size = 500,learning_rate = 1,max_diff = 1-1e-6, improvement_threshold = 1e-6,
                         max_conv = 10){
@@ -1436,12 +1439,6 @@ run_model_parallel_windows = function(Y,X,lambda,family = T,beta_0 = NULL,fix_co
   }else if(length(offset) < nrow(Y)){
     stop("Length of offsets must be the same as the number of observations")
   }
-  
-  #filter min deconv
-  lambda[lambda < min_deconv] = 0
-  lambda = sweep(lambda, 1, rowSums(lambda), FUN = "/")
-  lambda[is.na(lambda)] = 1/ncol(lambda)
-  
   #check if ct_cov_weights and weights are proper matrices
   if(is.null(ct_cov_weights) == F){
     if( (nrow(ct_cov_weights) != ncol(lambda)) |(ncol(ct_cov_weights) != ncol(y)) ){
@@ -1499,7 +1496,7 @@ run_model_parallel_windows = function(Y,X,lambda,family = T,beta_0 = NULL,fix_co
     #iterate over chunk
     NC = ncol(counts_chunk)
     results_chunk = foreach::foreach(i = 1:NC,.export = c("X", "lambda", "offset", "CT", "initialization", "min_deconv", "min_freq",
-                                                          "n_epochs","batch_size", "learning_rate", "max_diff", "intercept_col", "family",
+                                                          "n_epochs","batch_size", "learning_rate", "max_diff", "family",
                                                           "counts_chunk", "weights_chunk", "ct_cov_weights_chunk","improvement_threshold","max_conv"), .packages = c("Matrix", "MASS", "LaplacesDemon","spotglm")) %dopar% {
       tryCatch({
         print(paste0("On iteration ", i))
@@ -1524,7 +1521,7 @@ run_model_parallel_windows = function(Y,X,lambda,family = T,beta_0 = NULL,fix_co
           initialization = initialization, min_deconv = min_deconv, min_freq = min_freq,
           CT = CT, weights = WEIGHTS, ct_cov_weights = CT_COVARIATE_WEIGHTS,
           n_epochs = n_epochs,batch_size = batch_size, learning_rate = learning_rate,
-          max_diff = max_diff, intercept_col = intercept_col, improvement_threshold = improvement_threshold,
+          max_diff = max_diff, improvement_threshold = improvement_threshold,
           max_conv = max_conv
         )
         print(Sys.time() - t1)

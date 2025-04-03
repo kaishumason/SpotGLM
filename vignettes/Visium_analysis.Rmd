@@ -110,7 +110,7 @@ for(j in c(1:num_genes)){
   }
   res[[j]] = spotglm::run_model(y = data$counts[,j],X = data$niche, lambda = data$deconv,
                              family = "spot poisson",offset = log(data$library_size),
-                             initialization = "intercept",intercept_col = 1,min_reads_per_1000 = 0.05,batch_size = 500)
+                             initialization = T,batch_size = 500)
 }
 names(res) = colnames(data$counts)
 

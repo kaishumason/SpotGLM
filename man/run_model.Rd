@@ -23,8 +23,7 @@ run_model(
   learning_rate = 1,
   max_diff = 1 - 1e-06,
   improvement_threshold = 1e-06,
-  max_conv = 10,
-  min_reads_per_1000 = 1
+  max_conv = 10
 )
 }
 \arguments{
@@ -65,8 +64,6 @@ run_model(
 \item{improvement_threshold}{Minimum required improvement in likelihood ratio between epochs.}
 
 \item{max_conv}{Number of consecutive low-improvement epochs before convergence is assumed.}
-
-\item{min_reads_per_1000}{Minimum expression threshold (in reads per 1000) for filtering weak coefficients.}
 }
 \value{
 A list containing:
