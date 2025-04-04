@@ -115,10 +115,13 @@ for(j in c(1:ngenes)){
   T_statistics = intercept_estimate[[j]]$beta_est
   T_statistics = T_statistics/intercept_estimate[[j]]$stand_err_mat
   
+  #get "good" cell types: Those that have sufficient expression of the gene 
+  good_ct = which(T_statistics < -1.96 & intercept_estimate[[j]]$beta_est > -11)
+  
   #reweight deconvolution vector to reflect difference in expression 
   deconv_weighted = 0*data$deconv
   for(k in c(1:nrow(data$deconv))){
-    deconv_weighted[k,]=data$deconv[k,]*exp(intercept_estimate[[j]]$beta_est)
+    deconv_weighted[k,good_ct]=data$deconv[k,good_ct]*exp(intercept_estimate[[j]]$beta_est[,good_ct])
   }
   
   #normalize to sum to one
@@ -131,12 +134,8 @@ for(j in c(1:ngenes)){
   ct_freq = apply(deconv_weighted,2,function(x){sum(x > 0,na.rm = TRUE)})
   #remove cell types that don't appear more than 50 times
   important_ct = which(ct_freq > 50)
-  
-  #get "good" cell types: Those that have sufficient expression of the gene 
-  good_ct = which(T_statistics < -1.96 & intercept_estimate[[j]]$beta_est > -11)
-  
   #get intersection,i.e cell types with sufficient expression and sample size
-  good_cell_type_list[[j]] = intersect(good_ct, important_ct)
+  good_cell_type_list[[j]] = important_ct
 }
 ```
 

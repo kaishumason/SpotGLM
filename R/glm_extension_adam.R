@@ -1012,10 +1012,10 @@ run_single_cell = function(y,X,lambda,sc_family = "gaussian",offset = rep(0,leng
     #get how often a covaraite appears
     freq = apply(X[cells,,drop = F],2,function(x){sum(x!=0)})
     #update fix_coef
-    #bad_cov = which(freq < min_freq)
-    #if(length(bad_cov) > 0){
-      #fix_coef[bad_cov,r] = TRUE
-    #}
+    bad_cov = which(freq < 5)
+    if(length(bad_cov) > 0){
+      fix_coef[bad_cov,r] = TRUE
+    }
     if(sum(fix_coef[,r,drop = F]) == nrow(fix_coef)){
       next
     }
@@ -1135,7 +1135,6 @@ initialize_fix_coef = function(X,lambda,fix_coef = matrix(FALSE,ncol(X),ncol(lam
 #' @param fix_coef Logical matrix (covariates × cell types) indicating coefficients to fix during optimization.
 #' @param offset Optional numeric vector (same length as `y`), used for Poisson or NB normalization.
 #' @param initialization Boolean if initialization via single cell approximation should be performed. Default TRUE.
-#' @param min_deconv Minimum required deconvolution value for a spot to be included.
 #' @param CT Optional vector of dominant cell type labels per spot.
 #' @param weights Observation weights (same length as `y`).
 #' @param ct_cov_weights Optional vector of cell-type–specific weights (length = number of cell types).
@@ -1162,7 +1161,7 @@ initialize_fix_coef = function(X,lambda,fix_coef = matrix(FALSE,ncol(X),ncol(lam
 #' @export
 
 run_model = function(y,X,lambda,family = "spot gaussian",beta_0 = NULL,fix_coef = NULL,
-                     offset = rep(0,length(y)),initialization = T, min_deconv = 0.1,
+                     offset = rep(0,length(y)),initialization = T,
                      CT = NULL, weights = rep(1,length(y)),ct_cov_weights = rep(1,ncol(lambda)),
                      n_epochs = 100,batch_size = 500,learning_rate = 1,max_diff = 1-1e-6, improvement_threshold = 1e-6,
                      max_conv = 10){
@@ -1179,6 +1178,15 @@ run_model = function(y,X,lambda,family = "spot gaussian",beta_0 = NULL,fix_coef 
     stop("Offsets must be same length as observations")
   }
   
+  #remove spots with no weight
+  bad_spots = which(weights == 0)
+  if(length(bad_spots) > 0){
+    y = y[-bad_spots]
+    X = X[-bad_spots,,drop = F]
+    lambda = lambda[-bad_spots,,drop = F]
+    offset = offset[-bad_spots]
+    weights = weights[-bad_spots]
+  }
   
   
   #weight lambda by cov weights and normalize
@@ -1229,6 +1237,7 @@ run_model = function(y,X,lambda,family = "spot gaussian",beta_0 = NULL,fix_coef 
       initial= spotglm:::run_single_cell(y = y, X = X, lambda = lambda,sc_family = sc_family,offset = offset,
                                                                    weights = weights,fix_coef = fix_coef,CT = CT)
       beta_0 = initial$beta
+      fix_coef = initial$fix_coef
     }
     #Step 2: Get fix coef and good beta
     #get fixed coefficients 
@@ -1286,7 +1295,6 @@ run_model = function(y,X,lambda,family = "spot gaussian",beta_0 = NULL,fix_coef 
 #' @param initialization Boolean if initialization via single cell approximation should be performed. Default TRUE.
 #' @param G Maximum chunk size (in GB) to control memory usage during parallelization.
 #' @param num_cores Number of CPU cores to use in parallel.
-#' @param min_deconv Minimum required deconvolution value per spot.
 #' @param CT Optional vector of dominant cell types per spot.
 #' @param weights Optional observation-level weight matrix (spots × genes).
 #' @param ct_cov_weights Optional cell-type-specific weight matrix (cell types × genes).
@@ -1324,7 +1332,7 @@ run_model = function(y,X,lambda,family = "spot gaussian",beta_0 = NULL,fix_coef 
 #' @importFrom LaplacesDemon invlogit logit
 #' @export
 run_model_parallel_windows = function(Y,X,lambda,family = "spot",beta_0 = NULL,fix_coef = NULL,offset = NULL,
-                        initialization = T,G = 0.1,num_cores = 1, min_deconv = 0.1,
+                        initialization = T,G = 0.1,num_cores = 1,
                         CT = NULL, weights = NULL,ct_cov_weights = NULL,
                         n_epochs = 100,batch_size = 500,learning_rate = 1,max_diff = 1-1e-6, improvement_threshold = 1e-6,
                         max_conv = 10){
@@ -1394,7 +1402,7 @@ run_model_parallel_windows = function(Y,X,lambda,family = "spot",beta_0 = NULL,f
     on.exit(parallel::stopCluster(cluster), add = TRUE)
     #iterate over chunk
     NC = ncol(counts_chunk)
-    results_chunk = foreach::foreach(i = 1:NC,.export = c("X", "lambda", "offset", "CT", "initialization", "min_deconv", 
+    results_chunk = foreach::foreach(i = 1:NC,.export = c("X", "lambda", "offset", "CT", "initialization", 
                                                           "n_epochs","batch_size", "learning_rate", "max_diff", "family",
                                                           "counts_chunk", "weights_chunk", "ct_cov_weights_chunk","improvement_threshold","max_conv"), .packages = c("Matrix", "MASS", "LaplacesDemon","spotglm")) %dopar% {
       tryCatch({
@@ -1417,7 +1425,7 @@ run_model_parallel_windows = function(Y,X,lambda,family = "spot",beta_0 = NULL,f
         run_model(
           y = y, X = X, lambda = lambda, family = family,
           beta_0 = NULL, fix_coef = NULL, offset = offset,
-          initialization = initialization, min_deconv = min_deconv, 
+          initialization = initialization, 
           CT = CT, weights = WEIGHTS, ct_cov_weights = CT_COVARIATE_WEIGHTS,
           n_epochs = n_epochs,batch_size = batch_size, learning_rate = learning_rate,
           max_diff = max_diff, improvement_threshold = improvement_threshold,
@@ -1470,7 +1478,7 @@ run_model_parallel_windows = function(Y,X,lambda,family = "spot",beta_0 = NULL,f
 #' @export
 run_model_parallel_mac = function(Y, X, lambda, family = "spot gaussian", beta_0 = NULL, fix_coef = NULL,
                                 initialization = T, G = 0.1, num_cores = 1,offset = NULL,
-                                 min_deconv = 0.1, CT = NULL, weights = NULL, ct_cov_weights = NULL,
+                                 CT = NULL, weights = NULL, ct_cov_weights = NULL,
                                  n_epochs = 100,batch_size = 500, learning_rate = 1, max_diff = 1 - 1e-6, improvement_threshold = 1e-6,
                                 max_conv = 10) {
   #get offset values
@@ -1483,10 +1491,6 @@ run_model_parallel_mac = function(Y, X, lambda, family = "spot gaussian", beta_0
     stop("Length of offsets must be the same as the number of observations")
   }
   
-  #filter min deconv
-  lambda[lambda < min_deconv] = 0
-  lambda = sweep(lambda, 1, rowSums(lambda), FUN = "/")
-  lambda[is.na(lambda)] = 1/ncol(lambda)
   
   if (!is.null(ct_cov_weights)) {
     if ((nrow(ct_cov_weights) != ncol(lambda)) || (ncol(ct_cov_weights) != ncol(Y))) {
@@ -1539,7 +1543,7 @@ run_model_parallel_mac = function(Y, X, lambda, family = "spot gaussian", beta_0
         spotglm::run_model(
           y = y, X = X, lambda = lambda, family = family,
           beta_0 = beta_0, fix_coef = fix_coef, offset = offset,
-          initialization = initialization, min_deconv = min_deconv, 
+          initialization = initialization,  
           CT = CT, weights = WEIGHTS, ct_cov_weights = CT_COVARIATE_WEIGHTS,
           n_epochs = n_epochs,batch_size = batch_size, learning_rate = learning_rate,
           max_diff = max_diff,improvement_threshold = improvement_threshold,max_conv = max_conv

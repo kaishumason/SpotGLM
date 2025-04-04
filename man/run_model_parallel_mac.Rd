@@ -15,7 +15,6 @@ run_model_parallel_mac(
   G = 0.1,
   num_cores = 1,
   offset = NULL,
-  min_deconv = 0.1,
   CT = NULL,
   weights = NULL,
   ct_cov_weights = NULL,
@@ -48,8 +47,6 @@ run_model_parallel_mac(
 \item{num_cores}{Number of CPU cores to use in parallel.}
 
 \item{offset}{Optional numeric vector (length equal to number of spots).}
-
-\item{min_deconv}{Minimum required deconvolution value per spot.}
 
 \item{CT}{Optional vector of dominant cell types per spot.}
 

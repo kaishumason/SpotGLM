@@ -13,7 +13,6 @@ run_model(
   fix_coef = NULL,
   offset = rep(0, length(y)),
   initialization = T,
-  min_deconv = 0.1,
   CT = NULL,
   weights = rep(1, length(y)),
   ct_cov_weights = rep(1, ncol(lambda)),
@@ -41,8 +40,6 @@ run_model(
 \item{offset}{Optional numeric vector (same length as \code{y}), used for Poisson or NB normalization.}
 
 \item{initialization}{Boolean if initialization via single cell approximation should be performed. Default TRUE.}
-
-\item{min_deconv}{Minimum required deconvolution value for a spot to be included.}
 
 \item{CT}{Optional vector of dominant cell type labels per spot.}
 

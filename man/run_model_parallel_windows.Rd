@@ -15,7 +15,6 @@ run_model_parallel_windows(
   initialization = T,
   G = 0.1,
   num_cores = 1,
-  min_deconv = 0.1,
   CT = NULL,
   weights = NULL,
   ct_cov_weights = NULL,
@@ -48,8 +47,6 @@ run_model_parallel_windows(
 \item{G}{Maximum chunk size (in GB) to control memory usage during parallelization.}
 
 \item{num_cores}{Number of CPU cores to use in parallel.}
-
-\item{min_deconv}{Minimum required deconvolution value per spot.}
 
 \item{CT}{Optional vector of dominant cell types per spot.}
 
