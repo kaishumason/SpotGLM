@@ -987,7 +987,7 @@ glm_fisher = function(X,y,lambda,family,beta,good_beta,dispersion,weights = NULL
 #'
 #' @keywords internal
 run_single_cell = function(y,X,lambda,sc_family = "gaussian",offset = rep(0,length(y)),weights =rep(1,length(y)),
-                           fix_coef = matrix(FALSE,ncol(X),ncol(lambda)),CT = NULL,min_freq = 50){
+                           fix_coef = matrix(FALSE,ncol(X),ncol(lambda)),CT = NULL){
   if(is.null(weights)){
     weights = rep(1,length(y))
   }
@@ -1012,10 +1012,10 @@ run_single_cell = function(y,X,lambda,sc_family = "gaussian",offset = rep(0,leng
     #get how often a covaraite appears
     freq = apply(X[cells,,drop = F],2,function(x){sum(x!=0)})
     #update fix_coef
-    bad_cov = which(freq < min_freq)
-    if(length(bad_cov) > 0){
-      fix_coef[bad_cov,r] = TRUE
-    }
+    #bad_cov = which(freq < min_freq)
+    #if(length(bad_cov) > 0){
+      #fix_coef[bad_cov,r] = TRUE
+    #}
     if(sum(fix_coef[,r,drop = F]) == nrow(fix_coef)){
       next
     }
@@ -1053,112 +1053,13 @@ run_single_cell = function(y,X,lambda,sc_family = "gaussian",offset = rep(0,leng
 
 
 
-#' Initialize Intercept Coefficients (Single-Cell)
-#'
-#' Uses single-cell regression to estimate intercept terms for each cell type.
-#'
-#' @keywords internal
-initialize_beta_intercept_single_cell = function(y,X,lambda,sc_family,beta,offset = rep(0,length(y)),weights = rep(1,length(y)),
-                                     fix_coef = matrix(FALSE,ncol(X),ncol(lambda)),CT = NULL,min_freq = 50,intercept_ind = 1){
-  #initialize beta 
-  stand_err_mat = matrix(NA,ncol(X),ncol(lambda))
-  #fit intercept model
-  initial_beta = run_single_cell(y = y, X = matrix(1,nrow(X),1),lambda = lambda,sc_family = sc_family,offset = offset,
-                                 weights = weights, fix_coef = fix_coef[1,,drop = F],CT = CT,min_freq = 50)
-  #get intercept 
-  beta[intercept_ind,fix_coef[1,] == FALSE] = initial_beta$beta_est[fix_coef[1,] == FALSE]
-  fix_coef[intercept_ind,fix_coef[1,] == FALSE] = initial_beta$fix_coef[fix_coef[1,] == FALSE]
-  stand_err_mat[intercept_ind,fix_coef[1,] == FALSE] = initial_beta$stand_err_mat[fix_coef[1,] == FALSE]
-  
-  return(list(beta_0 = beta, fix_coef = fix_coef,stand_err_mat = stand_err_mat))
-}
 
 
 
 
 
-#' Initialize Intercept Coefficients via Spot-GLM
-#'
-#' Uses spot-level model to estimate intercept terms per cell type.
-#'
-#' @keywords internal
-initialize_beta_intercept = function(y,X,lambda,family,beta_0,offset = rep(0,length(y)),weights = rep(1,length(y)),
-                                     fix_coef = matrix(FALSE,ncol(X),ncol(lambda)),CT = NULL,min_freq = 50,intercept_ind = 1){
-  #initialize beta 
-  stand_err_mat = matrix(NA,ncol(X),ncol(lambda))
-  #fit intercept model
-  initial_beta = spot_glm(y = y, X = matrix(1,nrow(X),1),lambda = lambda,family = family,beta_0 = beta_0[1,,drop = F],offset = offset,
-                          weights = weights, fix_coef = fix_coef[1,,drop = F])
-  #get intercept 
-  beta_0[intercept_ind,fix_coef[1,] == FALSE,drop = F] = initial_beta$beta[fix_coef[1,] == FALSE]
-  stand_err_mat[intercept_ind,fix_coef[1,] == FALSE,drop = F] = sqrt(diag(initial_beta$vcov))[fix_coef[1,] == FALSE]
-  
-  return(list(beta_0 = beta_0, fix_coef = fix_coef,stand_err_mat = stand_err_mat))
-}
 
 
-
-
-#' Full Beta Initialization (Single-Cell)
-#'
-#' Initializes all coefficients using single-cell GLMs with optional intercept-only models.
-#'
-#' @keywords internal
-initialize_beta_full_single_cell = function(y,X,lambda,sc_family,beta, offset = rep(0,length(y)),weights =rep(1,length(y)),
-                                fix_coef = matrix(FALSE,ncol(X),ncol(lambda)),CT = NULL,min_freq = 50,intercept_ind = NULL){
-  stand_err_mat = matrix(NA,ncol(X),ncol(lambda))
-  #First fit intercept model
-  if(is.null(intercept_ind) == F){
-    #fit intercept model
-    initial_beta = run_single_cell(y = y, X = matrix(1,nrow(X),1),lambda = lambda,sc_family = sc_family,offset = offset,
-                                   weights = weights, fix_coef = fix_coef[1,,drop = F],CT = CT,min_freq = 50)
-    #get intercept 
-    beta[intercept_ind,fix_coef[1,] == FALSE] = initial_beta$beta_est[fix_coef[1,] == FALSE]
-    fix_coef[intercept_ind,fix_coef[1,] == FALSE] = initial_beta$fix_coef[fix_coef[1,] == FALSE]
-    stand_err_mat[intercept_ind,fix_coef[1,] == FALSE] = initial_beta$stand_err_mat[fix_coef[1,] == FALSE]
-  }else{
-    initial_beta = run_single_cell(y = y, X = matrix(1,nrow(X),1),lambda = lambda,sc_family = sc_family,offset = offset,
-                                   weights = weights, fix_coef = fix_coef[1,,drop = F],CT = CT,min_freq = 50)
-    #get intercept 
-    for(j in c(1:nrow(beta))){
-      beta[j,fix_coef[1,] == FALSE] = initial_beta$beta_est[fix_coef[1,] == FALSE]
-      stand_err_mat[j,fix_coef[1,] == FALSE] = initial_beta$stand_err_mat[fix_coef[1,] == FALSE]
-      fix_coef[j,fix_coef[1,] == FALSE] = initial_beta$fix_coef[fix_coef[1,] == FALSE]
-    }
-  }
-  return(list(beta_0 = beta, fix_coef = fix_coef,stand_err_mat = stand_err_mat))
-}
-
-
-
-#' Full Beta Initialization via Spot-GLM
-#'
-#' Uses spot-level model to initialize all coefficients with or without intercept-only pass.
-#'
-#' @keywords internal
-initialize_beta_full = function(y,X,lambda,family,beta_0, offset = rep(0,length(y)),weights =rep(1,length(y)),
-                                    fix_coef = matrix(FALSE,ncol(X),ncol(lambda)),intercept_ind = NULL){
-  stand_err_mat = matrix(NA,ncol(X),ncol(lambda))
-  #First fit intercept model
-  if(is.null(intercept_ind) == F){
-    #fit intercept model
-    initial_beta = spot_glm(y = y, X = matrix(1,nrow(X),1),lambda = lambda,family = family,beta_0 = beta_0[1,,drop = F],offset = offset,
-                           weights = weights, fix_coef = fix_coef[1,,drop = F])
-    #get intercept 
-    beta[intercept_ind,fix_coef[1,] == FALSE,drop = F] = initial_beta$beta[fix_coef[1,] == FALSE]
-    fix_coef[intercept_ind,fix_coef[1,] == FALSE,drop = F] = initial_beta$fix_coef[fix_coef[1,] == FALSE]
-    stand_err_mat[intercept_ind,fix_coef[1,] == FALSE,drop = F] = sqrt(diag(initial_beta$vcov))[fix_coef[1,] == FALSE]
-  }else{
-    initial_beta = spot_glm(y = y, X = matrix(1,nrow(X),1),lambda = lambda,family = family,beta_0= beta_0[1,,drop = F],offset = offset,
-                           weights = weights, fix_coef = fix_coef[1,,drop = F])
-    #get intercept 
-    for(j in c(1:nrow(beta_0))){
-      beta_0[j,fix_coef[1,] == FALSE,drop = F] = initial_beta$beta[fix_coef[1,] == FALSE]
-      stand_err_mat[j,fix_coef[1,] == FALSE,drop = F] = sqrt(diag(initial_beta$vcov))[fix_coef[1,] == FALSE]
-    }
-  }
-  return(list(beta_0 = beta_0,stand_err_mat = stand_err_mat))
-}
 
 
 
@@ -1235,7 +1136,6 @@ initialize_fix_coef = function(X,lambda,fix_coef = matrix(FALSE,ncol(X),ncol(lam
 #' @param offset Optional numeric vector (same length as `y`), used for Poisson or NB normalization.
 #' @param initialization Boolean if initialization via single cell approximation should be performed. Default TRUE.
 #' @param min_deconv Minimum required deconvolution value for a spot to be included.
-#' @param min_freq Minimum frequency for a covariate to be retained in the model.
 #' @param CT Optional vector of dominant cell type labels per spot.
 #' @param weights Observation weights (same length as `y`).
 #' @param ct_cov_weights Optional vector of cell-type–specific weights (length = number of cell types).
@@ -1262,7 +1162,7 @@ initialize_fix_coef = function(X,lambda,fix_coef = matrix(FALSE,ncol(X),ncol(lam
 #' @export
 
 run_model = function(y,X,lambda,family = "spot gaussian",beta_0 = NULL,fix_coef = NULL,
-                     offset = rep(0,length(y)),initialization = T, min_deconv = 0.1,min_freq = 50,
+                     offset = rep(0,length(y)),initialization = T, min_deconv = 0.1,
                      CT = NULL, weights = rep(1,length(y)),ct_cov_weights = rep(1,ncol(lambda)),
                      n_epochs = 100,batch_size = 500,learning_rate = 1,max_diff = 1-1e-6, improvement_threshold = 1e-6,
                      max_conv = 10){
@@ -1327,7 +1227,7 @@ run_model = function(y,X,lambda,family = "spot gaussian",beta_0 = NULL,fix_coef 
     
     if(initialization == T){
       initial= spotglm:::run_single_cell(y = y, X = X, lambda = lambda,sc_family = sc_family,offset = offset,
-                                                                   weights = weights,fix_coef = fix_coef,CT = CT,min_freq = min_freq)
+                                                                   weights = weights,fix_coef = fix_coef,CT = CT)
       beta_0 = initial$beta
     }
     #Step 2: Get fix coef and good beta
@@ -1387,7 +1287,6 @@ run_model = function(y,X,lambda,family = "spot gaussian",beta_0 = NULL,fix_coef 
 #' @param G Maximum chunk size (in GB) to control memory usage during parallelization.
 #' @param num_cores Number of CPU cores to use in parallel.
 #' @param min_deconv Minimum required deconvolution value per spot.
-#' @param min_freq Minimum frequency for a covariate to be retained in the model.
 #' @param CT Optional vector of dominant cell types per spot.
 #' @param weights Optional observation-level weight matrix (spots × genes).
 #' @param ct_cov_weights Optional cell-type-specific weight matrix (cell types × genes).
@@ -1425,7 +1324,7 @@ run_model = function(y,X,lambda,family = "spot gaussian",beta_0 = NULL,fix_coef 
 #' @importFrom LaplacesDemon invlogit logit
 #' @export
 run_model_parallel_windows = function(Y,X,lambda,family = "spot",beta_0 = NULL,fix_coef = NULL,offset = NULL,
-                        initialization = T,G = 0.1,num_cores = 1, min_deconv = 0.1,min_freq = 50,
+                        initialization = T,G = 0.1,num_cores = 1, min_deconv = 0.1,
                         CT = NULL, weights = NULL,ct_cov_weights = NULL,
                         n_epochs = 100,batch_size = 500,learning_rate = 1,max_diff = 1-1e-6, improvement_threshold = 1e-6,
                         max_conv = 10){
@@ -1495,7 +1394,7 @@ run_model_parallel_windows = function(Y,X,lambda,family = "spot",beta_0 = NULL,f
     on.exit(parallel::stopCluster(cluster), add = TRUE)
     #iterate over chunk
     NC = ncol(counts_chunk)
-    results_chunk = foreach::foreach(i = 1:NC,.export = c("X", "lambda", "offset", "CT", "initialization", "min_deconv", "min_freq",
+    results_chunk = foreach::foreach(i = 1:NC,.export = c("X", "lambda", "offset", "CT", "initialization", "min_deconv", 
                                                           "n_epochs","batch_size", "learning_rate", "max_diff", "family",
                                                           "counts_chunk", "weights_chunk", "ct_cov_weights_chunk","improvement_threshold","max_conv"), .packages = c("Matrix", "MASS", "LaplacesDemon","spotglm")) %dopar% {
       tryCatch({
@@ -1518,7 +1417,7 @@ run_model_parallel_windows = function(Y,X,lambda,family = "spot",beta_0 = NULL,f
         run_model(
           y = y, X = X, lambda = lambda, family = family,
           beta_0 = NULL, fix_coef = NULL, offset = offset,
-          initialization = initialization, min_deconv = min_deconv, min_freq = min_freq,
+          initialization = initialization, min_deconv = min_deconv, 
           CT = CT, weights = WEIGHTS, ct_cov_weights = CT_COVARIATE_WEIGHTS,
           n_epochs = n_epochs,batch_size = batch_size, learning_rate = learning_rate,
           max_diff = max_diff, improvement_threshold = improvement_threshold,
@@ -1571,7 +1470,7 @@ run_model_parallel_windows = function(Y,X,lambda,family = "spot",beta_0 = NULL,f
 #' @export
 run_model_parallel_mac = function(Y, X, lambda, family = "spot gaussian", beta_0 = NULL, fix_coef = NULL,
                                 initialization = T, G = 0.1, num_cores = 1,offset = NULL,
-                                 min_deconv = 0.1, min_freq = 50, CT = NULL, weights = NULL, ct_cov_weights = NULL,
+                                 min_deconv = 0.1, CT = NULL, weights = NULL, ct_cov_weights = NULL,
                                  n_epochs = 100,batch_size = 500, learning_rate = 1, max_diff = 1 - 1e-6, improvement_threshold = 1e-6,
                                 max_conv = 10) {
   #get offset values
@@ -1640,7 +1539,7 @@ run_model_parallel_mac = function(Y, X, lambda, family = "spot gaussian", beta_0
         spotglm::run_model(
           y = y, X = X, lambda = lambda, family = family,
           beta_0 = beta_0, fix_coef = fix_coef, offset = offset,
-          initialization = initialization, min_deconv = min_deconv, min_freq = min_freq,
+          initialization = initialization, min_deconv = min_deconv, 
           CT = CT, weights = WEIGHTS, ct_cov_weights = CT_COVARIATE_WEIGHTS,
           n_epochs = n_epochs,batch_size = batch_size, learning_rate = learning_rate,
           max_diff = max_diff,improvement_threshold = improvement_threshold,max_conv = max_conv

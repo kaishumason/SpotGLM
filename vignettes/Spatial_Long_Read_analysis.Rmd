@@ -109,7 +109,7 @@ for(j in c(1:ngenes)){
                                lambda = data$deconv,
                                offset = log(data$library_size),
                                initialization = T,
-                               family = "spot poisson",min_freq = 0)
+                               family = "spot poisson")
   
   #get T statistics for intercepts
   T_statistics = intercept_estimate[[j]]$beta_est
@@ -149,7 +149,6 @@ We next fit the binomial spotGLM as described above. We again use the "run model
 isoform_DE = vector("list",ngenes)
 names(isoform_DE) = colnames(data$total_gene_expression)
 for(j in c(1:ngenes)){
-print(j)
   #get gene name 
   gene = names(isoform_DE)[j]
   #get weights 
@@ -168,8 +167,7 @@ print(j)
                          family = "spot binomial",
                          weights = weights,
                          ct_cov_weights = ct_covariate_weights[good_cell_types],
-                         initialization = T,
-                         min_freq = 10)
+                         initialization = T)
 }
 
 ```

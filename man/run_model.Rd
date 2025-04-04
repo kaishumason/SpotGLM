@@ -14,7 +14,6 @@ run_model(
   offset = rep(0, length(y)),
   initialization = T,
   min_deconv = 0.1,
-  min_freq = 50,
   CT = NULL,
   weights = rep(1, length(y)),
   ct_cov_weights = rep(1, ncol(lambda)),
@@ -44,8 +43,6 @@ run_model(
 \item{initialization}{Boolean if initialization via single cell approximation should be performed. Default TRUE.}
 
 \item{min_deconv}{Minimum required deconvolution value for a spot to be included.}
-
-\item{min_freq}{Minimum frequency for a covariate to be retained in the model.}
 
 \item{CT}{Optional vector of dominant cell type labels per spot.}
 

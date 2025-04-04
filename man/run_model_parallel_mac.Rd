@@ -16,7 +16,6 @@ run_model_parallel_mac(
   num_cores = 1,
   offset = NULL,
   min_deconv = 0.1,
-  min_freq = 50,
   CT = NULL,
   weights = NULL,
   ct_cov_weights = NULL,
@@ -51,8 +50,6 @@ run_model_parallel_mac(
 \item{offset}{Optional numeric vector (length equal to number of spots).}
 
 \item{min_deconv}{Minimum required deconvolution value per spot.}
-
-\item{min_freq}{Minimum frequency for a covariate to be retained in the model.}
 
 \item{CT}{Optional vector of dominant cell types per spot.}
 

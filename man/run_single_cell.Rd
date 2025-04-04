@@ -12,8 +12,7 @@ run_single_cell(
   offset = rep(0, length(y)),
   weights = rep(1, length(y)),
   fix_coef = matrix(FALSE, ncol(X), ncol(lambda)),
-  CT = NULL,
-  min_freq = 50
+  CT = NULL
 )
 }
 \description{
