@@ -92,7 +92,7 @@ Note that both models require use of the spotglm function `run_model`.
 
 
 ### Step 1: Get Average Expression of Gene For Each Cell Type (~1 minute)
-We first fit the intercept model as described above.We make use of the spotglm function "run_model". We specify our response $y$ which we take to be the gene expression values for a gene $g$. our covariates $X$ is just the intercept matrix. $\lambda$ is our deconvolution which we make sure has row sums that sum to 1. Our offset is the library size of the each spot. The initialization used is "full" since we want to initialize all parameters. Our family is "spot poisson" since we are fitting a poisson model. 
+We first fit the intercept model as described above.We make use of the spotglm function "run_model". We specify our response $y$ which we take to be the gene expression values for a gene $g$. our covariates $X$ is just the intercept matrix. $\lambda$ is our deconvolution which we make sure has row sums that sum to 1. Our offset is the library size of the each spot. The initialization used is TRUE  since we want to initialize all parameters. Our family is "spot poisson" since we are fitting a poisson model. 
 ```
 #get number of genes 
 ngenes = ncol(data$total_gene_expression)
