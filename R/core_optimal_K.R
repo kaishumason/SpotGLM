@@ -53,7 +53,9 @@ compute_contrast <- function(input_list,cell_type,effect_names,beta_name = "beta
     stop("Effect names must be of length 2")
   }
   result = vector("list",length(input_list))
+  test_statistics = vector("list",length(input_list))
   names(result) = names(input_list)
+  names(test_statistics) = names(input_list)
   # Validate inputs
   if (!sided %in% c(1, 2)) stop("sided must be 1 or 2.")
   if (!direction %in% c("pos", "neg")) stop("direction must be 'pos' or 'neg'.")
@@ -85,6 +87,7 @@ compute_contrast <- function(input_list,cell_type,effect_names,beta_name = "beta
     
     if((length(cell_type_ind) != 1) | (length(effect_ind_1) != 1) |(length(effect_ind_1) != 1) ){
       result[[i]] <- NA
+      test_statistics[[i]] <- NA
       missing_counter = missing_counter + 1
       next
     }
@@ -109,13 +112,14 @@ compute_contrast <- function(input_list,cell_type,effect_names,beta_name = "beta
     }
     # Save p-values to list
     result[[i]] <- pvals
+    test_statistics[[i]] <- z
   }
   
   if(missing_counter>0){
     warning(paste0(missing_counter," entries were missing cell type or effect name"))
   }
   
-  return(result)
+  return(list(pvals = result,test_statistics = test_statistics))
 }
 
 #' Compute P-values for Single Covariate
@@ -139,7 +143,9 @@ compute_pvals <- function(input_list,cell_type,effect_name,beta_name = "beta_est
                           direction = "pos") {
   missing_counter = 0
   result = vector("list",length(input_list))
+  test_statistics = vector("list",length(input_list))
   names(result) = names(input_list)
+  names(test_statistics) = names(input_list)
   # Validate inputs
   if (!sided %in% c(1, 2)) stop("sided must be 1 or 2.")
   if (!direction %in% c("pos", "neg")) stop("direction must be 'pos' or 'neg'.")
@@ -161,6 +167,7 @@ compute_pvals <- function(input_list,cell_type,effect_name,beta_name = "beta_est
     
     if((length(cell_type_ind)==0) | (length(effect_ind) == 0)){
       result[[i]] <- NA
+      test_statistics[[i]] <- NA
       missing_counter = missing_counter + 1
       next
     }
@@ -180,13 +187,14 @@ compute_pvals <- function(input_list,cell_type,effect_name,beta_name = "beta_est
     }
     # Save p-values to list
     result[[i]] <- pvals
+    test_statistics[[i]] <- z
   }
   
   if(missing_counter>0){
     warning(paste0(missing_counter," entries were missing cell type or effect name"))
   }
   
-  return(result)
+  return(list(pvals = result,test_statistics = test_statistics))
 }
 
 
@@ -219,17 +227,18 @@ compute_significance <- function(input_list,cell_type,effect_name,beta_name = "b
                         standard_error_name = standard_error_name,sided = sided,
                         direction = direction)
   #Step 2: Compute qvalues
-  qvals = compute_qvals(pval_list = pvals)
+  qvals = compute_qvals(pval_list = pvals$pvals)
   
   #return matrix of results 
-  result_mat <- do.call(rbind, lapply(seq_along(pvals), function(i) {
+  result_mat <- do.call(rbind, lapply(seq_along(pvals$pvals), function(i) {
     data.frame(
-      name = names(pvals)[i],
+      name = names(pvals$pvals)[i],
       cell_type = cell_type,
       effect = effect_name,
       sided = sided,
       direction = direction,
-      pval = pvals[[i]],
+      test_statistic = pvals$test_statistics[[i]],
+      pval = pvals$pvals[[i]],
       qval = qvals[[i]],
       stringsAsFactors = FALSE
     )
@@ -268,18 +277,19 @@ compute_contrast_significance = function(input_list,cell_type,effect_names,beta_
                            covariance_name = covariance_name,sided = sided,
                         direction = direction)
   #Step 2: Compute qvalues
-  qvals = compute_qvals(pval_list = pvals)
+  qvals = compute_qvals(pval_list = pvals$pvals)
   
   #return matrix of results 
-  result_mat <- do.call(rbind, lapply(seq_along(pvals), function(i) {
+  result_mat <- do.call(rbind, lapply(seq_along(pvals$pvals), function(i) {
     data.frame(
-      name = names(pvals)[i],
+      name = names(pvals$pvals)[i],
       cell_type = cell_type,
       effect_1 = effect_names[1],
       effect_2 = effect_names[2],
       sided = sided,
       direction = direction,
-      pval = pvals[[i]],
+      test_statistic = pvals$test_statistics[[i]],
+      pval = pvals$pvals[[i]],
       qval = qvals[[i]],
       stringsAsFactors = FALSE
     )

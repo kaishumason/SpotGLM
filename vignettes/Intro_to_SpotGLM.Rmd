@@ -169,7 +169,7 @@ One can compute pvalues and qvalues for testing significance via the `compute_si
 </details>
 
 
-The output is a matrix with 7 columns; the name of the response, the cell type,the effect, the sidedness of the test, the direction of the test,the pvalue, and the qvalue. The qvalue is designed to be used in scenarios where one is testing across many responses (e.g. genes) and is interested in assessing significance for a cell type specific effect across all responses.Because the input must be a list of lists, for this example we use list(model) as an argument. Note that if the input list has no names, the names are replaced with the prefix "Test". For easy interpretation of results it is suggested that one name the list.
+The output is a matrix with 8 columns; the name of the response, the cell type,the effect, the sidedness of the test, the direction of the test,the test statistic,the pvalue, and the qvalue. The qvalue is designed to be used in scenarios where one is testing across many responses (e.g. genes) and is interested in assessing significance for a cell type specific effect across all responses.Because the input must be a list of lists, for this example we use list(model) as an argument. Note that if the input list has no names, the names are replaced with the prefix "Test". For easy interpretation of results it is suggested that one name the list.
 
 
 
@@ -183,7 +183,6 @@ spotglm::compute_significance(input_list = list(model),
 
 ### Contrasts
 Another downstream analysis one can use is a contrast test. This test whether $\beta^{t}_j = \beta^{t}_k$ for some cell type $t$ and effects $j$ and $k$. One can compute pvalues and qvalues for testing significance via the `compute_contrast_significance` function. This function takes the following arguments:
-This function takes the following arguments
 
 
 <details>
@@ -196,7 +195,7 @@ This function takes the following arguments
 + `sided`: Should we test for a one sided (1) or two-sided (2) difference in effects? Default is 2.
 + `direction`: If one sided, should we test for positive effects(effect 1 > effect 2) or negative?
 </details>
-The output is a matrix with 8 columns; the name of the response, the cell type,the effects, the sidedness of the test, the direction of the test,the pvalue, and the qvalue.
+The output is a matrix with 9 columns; the name of the response, the cell type,the effects, the sidedness of the test, the direction of the test,the test statistic, the pvalue, and the qvalue.
 
 ```
 spotglm::compute_contrast_significance(input_list = list(model),
