@@ -40,6 +40,10 @@ We will read in data with the `read_spatial_long_read()` function. The function 
 
 ```
 data = spotglm::read_spatial_long_read()
+#filter out low deconvolutions (likely noise)
+data$deconv[data$deconv < 0.05] = 0
+data$deconv = t(apply(data$deconv,1,function(x){x/sum(x)}))
+
 ```
 
 
@@ -99,43 +103,14 @@ ngenes = ncol(data$total_gene_expression)
 #initialize intercept estimates
 intercept_estimate = vector("list",ngenes)
 names(intercept_estimate) = colnames(data$total_gene_expression)
-#initialize list of important cell types for this gene 
-good_cell_type_list = vector("list",ngenes)
-names(good_cell_type_list) = colnames(data$total_gene_expression)
 #iterate over each gene 
 for(j in c(1:ngenes)){
   intercept_estimate[[j]]=spotglm::run_model(y = data$total_gene_expression[,j],
-                               X = matrix(1,nrow(data$total_gene_expression),1),
-                               lambda = data$deconv,
-                               offset = log(data$library_size),
-                               initialization = T,
-                               family = "spot poisson")
-  
-  #get T statistics for intercepts
-  T_statistics = intercept_estimate[[j]]$beta_est
-  T_statistics = T_statistics/intercept_estimate[[j]]$stand_err_mat
-  
-  #get "good" cell types: Those that have sufficient expression of the gene 
-  good_ct = which(T_statistics < -1.96 & intercept_estimate[[j]]$beta_est > -11)
-  
-  #reweight deconvolution vector to reflect difference in expression 
-  deconv_weighted = 0*data$deconv
-  for(k in c(1:nrow(data$deconv))){
-    deconv_weighted[k,good_ct]=data$deconv[k,good_ct]*exp(intercept_estimate[[j]]$beta_est[,good_ct])
-  }
-  
-  #normalize to sum to one
-  deconv_weighted = deconv_weighted/rowSums(deconv_weighted)
-  #remove those cells that have small weights
-  deconv_weighted[deconv_weighted < 0.2] = 0
-  #re-normalize
-  deconv_weighted = deconv_weighted/rowSums(deconv_weighted)
-  #get cell type frequencies
-  ct_freq = apply(deconv_weighted,2,function(x){sum(x > 0,na.rm = TRUE)})
-  #remove cell types that don't appear more than 50 times
-  important_ct = which(ct_freq > 50)
-  #get intersection,i.e cell types with sufficient expression and sample size
-  good_cell_type_list[[j]] = important_ct
+                                             X = matrix(1,nrow(data$total_gene_expression),1),
+                                             lambda = data$deconv,
+                                             offset = log(data$library_size),
+                                             initialization = T,
+                                             family = "spot poisson")
 }
 ```
 
@@ -144,7 +119,6 @@ for(j in c(1:ngenes)){
 We next fit the binomial spotGLM as described above. We again use the "run model" function. This time however,the family is "spot binomial" since we are running a binomial model. We additionally use two parameters that are generally not used when running spotglm `weights` and `ct_cov_weights`. In a binomial regression model, it is necessary to weight observations by the number of trials used. For each gene this corresponds to the total gene expression vector. Additionally, unlike the spot poisson model where the spot expression was a weighted mean of cell type level expression with the weight corresponding to $\pi_{s,t}$, in the spot binomial model, there is an additional cell type specific weight $\mu_{g,t} = \exp(\beta_{0,g}^t)$. We can include this vector in the `ct_cov_weights` argument. We fit the binomial model below.
 
 ```
-#Step 2: Fit spot binomial model
 isoform_DE = vector("list",ngenes)
 names(isoform_DE) = colnames(data$total_gene_expression)
 for(j in c(1:ngenes)){
@@ -154,21 +128,15 @@ for(j in c(1:ngenes)){
   weights = data$total_gene_expression[,gene]
   #get covariate weights 
   ct_covariate_weights  = exp(intercept_estimate[[gene]]$beta_est)
-  #get good cell types for this gene
-  good_cell_types = good_cell_type_list[[j]]
-  if(length(good_cell_types) == 0){
-    next
-  }
   #run model 
   isoform_DE[[j]] = spotglm::run_model(y = data$isoform_expression[[gene]][[1]],
-                         X = data$regions,
-                         lambda = data$deconv[,good_cell_types,drop = F],
-                         family = "spot binomial",
-                         weights = weights,
-                         ct_cov_weights = ct_covariate_weights[good_cell_types],
-                         initialization = T)
+                                       X = data$regions,
+                                       lambda = data$deconv,
+                                       family = "spot binomial",
+                                       weights = weights,
+                                       ct_cov_weights = ct_covariate_weights,
+                                       initialization = T)
 }
-
 ```
 
 ### Step 3: Downstream Analysis: Contrast Test to Identify Isoform Switching Across Regions
