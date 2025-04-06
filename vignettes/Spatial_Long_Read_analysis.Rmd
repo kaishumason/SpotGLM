@@ -110,7 +110,7 @@ for(j in c(1:ngenes)){
                                              lambda = data$deconv,
                                              offset = log(data$library_size),
                                              initialization = T,
-                                             family = "spot poisson")
+                                             family = "spot poisson",batch_size = 32, n_epoch = 500)
 }
 ```
 
@@ -135,7 +135,7 @@ for(j in c(1:ngenes)){
                                        family = "spot binomial",
                                        weights = weights,
                                        ct_cov_weights = ct_covariate_weights,
-                                       initialization = T)
+                                       initialization = T,batch_size = 32, n_epoch = 500)
 }
 ```
 
