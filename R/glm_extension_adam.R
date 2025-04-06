@@ -243,16 +243,16 @@ spot_glm = function(
         beta_new_temp = beta_new + grad_update
         
         #if(family == "spot negative binomial"){
-          #m_disp_temp  = beta_1 * m_disp + (1 - beta_1) * disp_grad
-          #v_disp_temp  = beta_2 * v_disp + (1 - beta_2) * (disp_grad^2)
-          #m_disp_hat   = m_disp_temp / (1 - beta_1^t_temp)
-          #v_disp_hat   = v_disp_temp / (1 - beta_2^t_temp)
-          #disp_update  = learning_rate * m_disp_hat / (sqrt(v_disp_hat) + epsilon)
-          #dispersion_temp = dispersion + disp_update
-          #print(dispersion_temp)
-          #dispersion_temp = max(dispersion_temp, 0.05)
+        #m_disp_temp  = beta_1 * m_disp + (1 - beta_1) * disp_grad
+        #v_disp_temp  = beta_2 * v_disp + (1 - beta_2) * (disp_grad^2)
+        #m_disp_hat   = m_disp_temp / (1 - beta_1^t_temp)
+        #v_disp_hat   = v_disp_temp / (1 - beta_2^t_temp)
+        #disp_update  = learning_rate * m_disp_hat / (sqrt(v_disp_hat) + epsilon)
+        #dispersion_temp = dispersion + disp_update
+        #print(dispersion_temp)
+        #dispersion_temp = max(dispersion_temp, 0.05)
         #} else {
-          #dispersion_temp = dispersion
+        #dispersion_temp = dispersion
         #}
         
         # Here we do a line-search style step check using the FULL data
@@ -329,14 +329,16 @@ spot_glm = function(
         # Now you can compare the new vs. old batch likelihood:
         lik_diff = lik_new_batch / lik_old_batch
         if(is.na(lik_diff)){
+          learning_rate = learning_rate * 0.5
           break
         }
-       
+        
         
         # If overshoot or small improvement, reduce step and try again
-        if((lik_diff > 1 + 1e-3) | (lik_diff > 1 + 1e-6 & epoch > 2)) {
+        if((lik_diff > 1 + 1e-6) | (lik_diff > 1 + 1e-6 & epoch > 1)) {
           learning_rate = learning_rate * 0.5
-          recompute_gradients = TRUE
+
+          recompute_gradients = FALSE
         } else {
           # Accept update
           lik_diff           = min(lik_diff, 1 / lik_diff)
@@ -346,8 +348,8 @@ spot_glm = function(
           v_beta             = v_beta_temp
           
           #if(family == "spot negative binomial"){
-            #m_disp          = m_disp_temp
-            #v_disp          = v_disp_temp
+          #m_disp          = m_disp_temp
+          #v_disp          = v_disp_temp
           #}
           
           t = t_temp
@@ -448,6 +450,15 @@ spot_glm = function(
     # Could return # of epochs used, final learning rate, etc.
   ))
 }
+
+
+
+
+
+
+
+
+
 
 
 

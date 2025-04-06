@@ -28,7 +28,7 @@ $$Y_i \sim Pois(\sum_{t=1}^{T}\lambda_{i,t}\exp(X_i\beta^t + \log(1000)))$$
 Here $Y_i$ is the response (e.g. gene expression) for spot $i$, $X_i$ is the covariate vector for spot $i$,$t$ denotes a cell type, $\lambda_{i,t}$ is the deconvolution estimate for cell type $t$ in spot $i$, and $\beta^t$ is the effect vector for cell type $t$. Note that each cell type gets a different effect vector. Also note that the columns of $X$ are bounded between 0 and 1. Bounding all columns between some interval is recommended to prevent scaling issues and to make interpretation easier. 
 ```
 data = sparrow::simulate_data(n = 1e5, nct = 8,family = "poisson",
-                              effect_range = c(-0.2,0.2),
+                              effect_range = c(-2,2),
                               min_effect = 0.05,
                               intercept_range = c(-6,-4),
                               library_size = 1000, spot_ct = 2,
