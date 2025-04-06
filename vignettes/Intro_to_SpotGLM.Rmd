@@ -82,8 +82,8 @@ The `run_model()` function returns a list with the following elements:
 
 <details>
   <summary>Output</summary>
-  - `beta_est`: Estimated regression coefficients. Of dimension #Columns of X by #Cell Types
-- `stand_err_mat`: Standard error matrix for beta coefficients
+  - `beta_estimate`: Estimated regression coefficients. Of dimension #Columns of X by #Cell Types
+- `standard_error_matrix`: Standard error matrix for beta coefficients
 - `time`: Time elapsed to fit model. Not including initialization
 - `disp`: The dispersion parameter (for negative binomial or gaussian models)
 - `converged`: Logical flag indicating whether the optimization algorithm converged
@@ -112,7 +112,7 @@ The `spot_lm` function returns a list with the following elements:
 <details>
   <summary>Output</summary>
   - `beta`: Estimated regression coefficients. Of dimension #Columns of X by #Cell Types
-- `stand_err_mat`: Standard error matrix.
+- `standard_error_matrix`: Standard error matrix.
 - `sigma.sq`: Residual variance estimate.
 - `vcov`: The Variance-covariance matrix of the beta coefficients
 
@@ -133,20 +133,20 @@ Finally, we recommend scaling features to be in the range [0,1] or [-1,1] if pos
 
 ### Plotting Results
 ```
-plot(data$beta[-1,],model$beta_est[-1,])
+plot(data$beta[-1,],model$beta_estimate[-1,])
 abline(a=0,b=1,col = "red")
 
 ```
 ### Interpretting Outputs
-The beta estimates can be found via `beta_est` index. We see that the column names correspond to cell types and the row names correspond to the effect names. To find the estimated effect vector $\beta^t$, one simply needs to look at the relevant column of the matrix. 
+The beta estimates can be found via `beta_estimate` index. We see that the column names correspond to cell types and the row names correspond to the effect names. To find the estimated effect vector $\beta^t$, one simply needs to look at the relevant column of the matrix. 
 ```
-model$beta_est
+model$beta_estimate
 
 ```
-The standard error matrix gives the corresponding standard errors of each estimated coefficient and can be found in the `stand_err_mat` index. it has the same structure as the coefficient matrix. 
+The standard error matrix gives the corresponding standard errors of each estimated coefficient and can be found in the `standard_error_matrix` index. it has the same structure as the coefficient matrix. 
 
 ```
-model$stand_err_mat
+model$standard_error_matrix
 
 ```
 The `vcov` index gives us the variance covariance matrix of the beta coefficients. It is of dimension $(T\times p)\times(T \times p)$ where $T$ is the number of cell types and $p$ is the number of features. The columns correspond to the coefficients traversing column wise throughout the coefficient matrix. Therefore, the first 9 columns of the variance-covariance matrix correspond to the the first column of the coefficient matrix.
@@ -162,7 +162,7 @@ One can compute pvalues and qvalues for testing significance via the `compute_si
   + `input_list`: A list of spotglm outputs. Each element of the list should contain a list that holds the beta estimates and standard errors.
 + `cell_type`: The cell type of interest
 + `effect_names`: The effects we wish to assess significance for in the cell type of interest. 
-+ `beta_name`: Where the beta coefficient estimate matrix is held in the each element of the input list. Default is `beta_est`
++ `beta_name`: Where the beta coefficient estimate matrix is held in the each element of the input list. Default is `beta_estimate`
 + `standard_error_name`: Where the beta coefficient estimate matrix is held in the each element of the input list. Default is `std_error_mat`
 + `sided`: Should we test for a one sided (1) or two-sided (2) difference in effects? Default value is 2
 + `direction`: If one sided, should we test for positive effects(effect > 0) or negative?

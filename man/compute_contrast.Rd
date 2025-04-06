@@ -8,7 +8,7 @@ compute_contrast(
   input_list,
   cell_type,
   effect_names,
-  beta_name = "beta_est",
+  beta_name = "beta_estimate",
   covariance_name = "vcov",
   sided = 2,
   direction = "pos"
@@ -21,7 +21,7 @@ compute_contrast(
 
 \item{effect_names}{Character vector of length 2 indicating the two covariates to contrast.}
 
-\item{beta_name}{Name of the beta matrix in each model output (default: "beta_est").}
+\item{beta_name}{Name of the beta matrix in each model output (default: "beta_estimate").}
 
 \item{covariance_name}{Name of the covariance matrix in each model output (default: "vcov").}
 

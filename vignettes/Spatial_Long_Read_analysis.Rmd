@@ -127,7 +127,7 @@ for(j in c(1:ngenes)){
   #get weights 
   weights = data$total_gene_expression[,gene]
   #get covariate weights 
-  ct_covariate_weights  = exp(intercept_estimate[[gene]]$beta_est)
+  ct_covariate_weights  = exp(intercept_estimate[[gene]]$beta_estimate)
   #run model 
   isoform_DE[[j]] = spotglm::run_model(y = data$isoform_expression[[gene]][[1]],
                                        X = data$regions,
@@ -161,7 +161,7 @@ for(ct in cell_types){
       pvals = suppressWarnings(spotglm::compute_contrast_significance(input_list = isoform_DE,
                                            cell_type = ct,
                                            effect_names = c(region_A,region_B),
-                                           beta_name = "beta_est",
+                                           beta_name = "beta_estimate",
                                            covariance_name = "vcov",
                                            sided = 2))
       

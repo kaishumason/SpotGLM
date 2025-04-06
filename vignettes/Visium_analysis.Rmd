@@ -123,8 +123,8 @@ After fitting the spotGLM we can evaluate which genes as (t,t') niche differenti
 #get significant genes
 sig_genes = compute_significance(input_list = res,cell_type = "stromal",
                                  effect_name = "subclone_1",
-                                 beta_name = "beta_est",
-                                 standard_error_name = "stand_err_mat",
+                                 beta_name = "beta_estimate",
+                                 standard_error_name = "standard_error_matrix",
                                  sided = 1,direction = "pos")
 sig_genes = sig_genes%>%filter(!is.na(pval))
 print("The following genes are (fibroblast,tumor subclone 1) niche differential")
@@ -143,7 +143,7 @@ that is that we can differentiate whether cell type $t$ is near a niche enriched
 sig_genes = compute_contrast_significance(input_list = res,
                                     cell_type = "stromal",
                                     effect_names = c("subclone_1","subclone_2"),
-                               beta_name = "beta_est",covariance_name = "vcov",
+                               beta_name = "beta_estimate",covariance_name = "vcov",
                                sided = 1,direction = "pos")
 sig_genes = sig_genes%>%filter(!is.na(pval))
 m = paste0("The following genes are niche marker genes for fibroblasts near",

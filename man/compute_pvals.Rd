@@ -8,8 +8,8 @@ compute_pvals(
   input_list,
   cell_type,
   effect_name,
-  beta_name = "beta_est",
-  standard_error_name = "stand_err_mat",
+  beta_name = "beta_estimate",
+  standard_error_name = "standard_error_matrix",
   sided = 2,
   direction = "pos"
 )
@@ -21,9 +21,9 @@ compute_pvals(
 
 \item{effect_name}{Character. Name of the covariate/effect of interest.}
 
-\item{beta_name}{Name of the beta matrix in each model output (default: "beta_est").}
+\item{beta_name}{Name of the beta matrix in each model output (default: "beta_estimate").}
 
-\item{standard_error_name}{Name of the standard error matrix (default: "stand_err_mat").}
+\item{standard_error_name}{Name of the standard error matrix (default: "standard_error_matrix").}
 
 \item{sided}{Integer. 1 for one-sided, 2 for two-sided test.}
 

@@ -69,8 +69,8 @@ run_model_parallel_windows(
 \value{
 A named list of model results (one per gene), each containing:
 \describe{
-\item{beta_est}{Estimated coefficients.}
-\item{stand_err_mat}{Standard error matrix.}
+\item{beta_estimate}{Estimated coefficients.}
+\item{standard_error_matrix}{Standard error matrix.}
 \item{disp}{Dispersion estimate (if applicable).}
 \item{likelihood}{Final log-likelihood.}
 \item{converged}{Convergence status.}

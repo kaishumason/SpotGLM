@@ -62,8 +62,8 @@ run_model(
 \value{
 A list containing:
 \describe{
-\item{beta_est}{Estimated coefficient matrix (covariates × cell types).}
-\item{stand_err_mat}{Standard error matrix for each coefficient.}
+\item{beta_estimate}{Estimated coefficient matrix (covariates × cell types).}
+\item{standard_error_matrix}{Standard error matrix for each coefficient.}
 \item{time}{Elapsed fitting time (in seconds).}
 \item{disp}{Estimated dispersion (for NB models).}
 \item{converged}{Logical indicating if convergence was reached.}

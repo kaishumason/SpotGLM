@@ -545,7 +545,7 @@ spot_glm_gaussian = function(X,y,lambda,fix_coef,beta_0){
   rownames(beta_0) = colnames(X)
 
   #return matrix
-  return(list(beta = beta_0,vcov = V,sigma.sq = summary(lm1)$sigma^2))
+  return(list(beta_estimate = beta_0,vcov = V,sigma.sq = summary(lm1)$sigma^2))
 }
 
 
@@ -564,7 +564,7 @@ spot_glm_gaussian = function(X,y,lambda,fix_coef,beta_0){
 #' \describe{
 #'   \item{beta}{Estimated coefficients.}
 #'   \item{vcov}{Variance-covariance matrix.}
-#'   \item{std_err_mat}{Standard error matrix.}
+#'   \item{standard_error_matrix}{Standard error matrix.}
 #'   \item{sigma.sq}{Residual variance estimate.}
 #' }
 #'
@@ -656,17 +656,17 @@ spot_lm = function(y,X,lambda,big_X = NULL,fix_coef = NULL,beta_0 = NULL){
   V = matrix(NA,N,N)
   V[keep_ind,keep_ind] = vcov(lm1)
   #save standard error matrix 
-  standard_error_mat = matrix(sqrt(diag(V)),ncol(X),ncol(lambda))
+  standard_error_matrix = matrix(sqrt(diag(V)),ncol(X),ncol(lambda))
   
 
   colnames(beta_0) = colnames(lambda)
   rownames(beta_0) = colnames(X)
   
-  colnames(standard_error_mat) = colnames(lambda)
-  rownames(standard_error_mat) = colnames(X)
+  colnames(standard_error_matrix) = colnames(lambda)
+  rownames(standard_error_matrix) = colnames(X)
 
   #return matrix
-  return(list(beta = beta_0,vcov = V,std_err_mat = standard_error_mat,sigma.sq = summary(lm1)$sigma^2))
+  return(list(beta_estimate = beta_0,vcov = V,standard_error_matrix = standard_error_matrix,sigma.sq = summary(lm1)$sigma^2))
 }
 
 
@@ -1009,7 +1009,7 @@ run_single_cell = function(y,X,lambda,sc_family = "gaussian",offset = rep(0,leng
   }
   #initialize beta and std_err matrices
   beta = matrix(0,nrow = ncol(X),ncol = ncol(lambda))
-  std_err_mat = matrix(NA,nrow = ncol(X),ncol = ncol(lambda))
+  standard_error_matrix = matrix(NA,nrow = ncol(X),ncol = ncol(lambda))
   t1 = Sys.time()
   #iterate model over each cell type 
   for(r in c(1:ncol(lambda))){
@@ -1053,13 +1053,13 @@ run_single_cell = function(y,X,lambda,sc_family = "gaussian",offset = rep(0,leng
     V = diag(vcov(lm1))
     #update beta and std err matrices
     beta[which(fix_coef[,r] == FALSE),r] = coef(lm1)
-    std_err_mat[which(fix_coef[,r] == FALSE),r] = sqrt(V)
+    standard_error_matrix[which(fix_coef[,r] == FALSE),r] = sqrt(V)
   }
   t2 = Sys.time()
   #remove NAs
   beta[is.na(beta)] = 0
   #print(t2-t1)
-  return (list(beta_est = beta, stand_err_mat = std_err_mat,fix_coef = fix_coef))
+  return (list(beta_estimate = beta, standard_error_matrix = standard_error_matrix,fix_coef = fix_coef))
 }
 
 
@@ -1158,8 +1158,8 @@ initialize_fix_coef = function(X,lambda,fix_coef = matrix(FALSE,ncol(X),ncol(lam
 #'
 #' @return A list containing:
 #' \describe{
-#'   \item{beta_est}{Estimated coefficient matrix (covariates × cell types).}
-#'   \item{stand_err_mat}{Standard error matrix for each coefficient.}
+#'   \item{beta_estimate}{Estimated coefficient matrix (covariates × cell types).}
+#'   \item{standard_error_matrix}{Standard error matrix for each coefficient.}
 #'   \item{time}{Elapsed fitting time (in seconds).}
 #'   \item{disp}{Estimated dispersion (for NB models).}
 #'   \item{converged}{Logical indicating if convergence was reached.}
@@ -1275,11 +1275,11 @@ run_model = function(y,X,lambda,family = "spot gaussian",beta_0 = NULL,fix_coef 
     std_err[j] = suppressWarnings(sqrt(result$vcov[j,j]))
   }
   
-  stand_err_mat = matrix(std_err,nrow = ncol(X),byrow = F)
-  colnames(stand_err_mat) = colnames(lambda)
-  rownames(stand_err_mat) = colnames(X)
+  standard_error_matrix = matrix(std_err,nrow = ncol(X),byrow = F)
+  colnames(standard_error_matrix) = colnames(lambda)
+  rownames(standard_error_matrix) = colnames(X)
                          
-  return (list(beta_est = result$beta, stand_err_mat = stand_err_mat,time = t2 - t1,
+  return (list(beta_estimate = result$beta, standard_error_matrix = standard_error_matrix,time = t2 - t1,
                disp = result$dispersion,converged = result$converged,likelihood = result$likelihood,vcov = result$vcov,
                niter = result$num_epoch,fixed_coef = result$fixed_coef))
 }
@@ -1318,8 +1318,8 @@ run_model = function(y,X,lambda,family = "spot gaussian",beta_0 = NULL,fix_coef 
 #'
 #' @return A named list of model results (one per gene), each containing:
 #' \describe{
-#'   \item{beta_est}{Estimated coefficients.}
-#'   \item{stand_err_mat}{Standard error matrix.}
+#'   \item{beta_estimate}{Estimated coefficients.}
+#'   \item{standard_error_matrix}{Standard error matrix.}
 #'   \item{disp}{Dispersion estimate (if applicable).}
 #'   \item{likelihood}{Final log-likelihood.}
 #'   \item{converged}{Convergence status.}

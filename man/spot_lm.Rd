@@ -24,7 +24,7 @@ A list with:
 \describe{
 \item{beta}{Estimated coefficients.}
 \item{vcov}{Variance-covariance matrix.}
-\item{std_err_mat}{Standard error matrix.}
+\item{standard_error_matrix}{Standard error matrix.}
 \item{sigma.sq}{Residual variance estimate.}
 }
 }

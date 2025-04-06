@@ -36,7 +36,7 @@ compute_qvals <- function(pval_list) {
 #' @param input_list A list of model outputs with beta and covariance matrices.
 #' @param cell_type Character. Cell type of interest.
 #' @param effect_names Character vector of length 2 indicating the two covariates to contrast.
-#' @param beta_name Name of the beta matrix in each model output (default: "beta_est").
+#' @param beta_name Name of the beta matrix in each model output (default: "beta_estimate").
 #' @param covariance_name Name of the covariance matrix in each model output (default: "vcov").
 #' @param sided Integer. 1 for one-sided, 2 for two-sided test.
 #' @param direction Character. "pos" or "neg", used if `sided = 1`.
@@ -44,7 +44,7 @@ compute_qvals <- function(pval_list) {
 #' @return A named list of p-values for each model in the input list.
 #'
 #' @keywords internal
-compute_contrast <- function(input_list,cell_type,effect_names,beta_name = "beta_est", 
+compute_contrast <- function(input_list,cell_type,effect_names,beta_name = "beta_estimate", 
                              covariance_name = "vcov",
                              sided = 2, 
                              direction = "pos") {
@@ -129,16 +129,16 @@ compute_contrast <- function(input_list,cell_type,effect_names,beta_name = "beta
 #' @param input_list A list of model outputs with beta and standard error matrices.
 #' @param cell_type Character. Cell type of interest.
 #' @param effect_name Character. Name of the covariate/effect of interest.
-#' @param beta_name Name of the beta matrix in each model output (default: "beta_est").
-#' @param standard_error_name Name of the standard error matrix (default: "stand_err_mat").
+#' @param beta_name Name of the beta matrix in each model output (default: "beta_estimate").
+#' @param standard_error_name Name of the standard error matrix (default: "standard_error_matrix").
 #' @param sided Integer. 1 for one-sided, 2 for two-sided test.
 #' @param direction Character. "pos" or "neg", used if `sided = 1`.
 #'
 #' @return A named list of p-values for each model in the input list.
 #'
 #' @keywords internal
-compute_pvals <- function(input_list,cell_type,effect_name,beta_name = "beta_est", 
-                          standard_error_name = "stand_err_mat",
+compute_pvals <- function(input_list,cell_type,effect_name,beta_name = "beta_estimate", 
+                          standard_error_name = "standard_error_matrix",
                           sided = 2, 
                           direction = "pos") {
   missing_counter = 0
@@ -206,16 +206,16 @@ compute_pvals <- function(input_list,cell_type,effect_name,beta_name = "beta_est
 #' @param input_list A list of model outputs with beta and standard error matrices.
 #' @param cell_type Character. Cell type of interest.
 #' @param effect_name Character. Name of the covariate/effect of interest.
-#' @param beta_name Name of the beta matrix (default: "beta_est").
-#' @param standard_error_name Name of the standard error matrix (default: "stand_err_mat").
+#' @param beta_name Name of the beta matrix (default: "beta_estimate").
+#' @param standard_error_name Name of the standard error matrix (default: "standard_error_matrix").
 #' @param sided Integer. 1 for one-sided, 2 for two-sided test.
 #' @param direction Character. "pos" or "neg", used if `sided = 1`.
 #'
 #' @return A data frame with columns: name, pval, and qval.
 #'
 #' @export
-compute_significance <- function(input_list,cell_type,effect_name,beta_name = "beta_est", 
-                                 standard_error_name = "stand_err_mat", 
+compute_significance <- function(input_list,cell_type,effect_name,beta_name = "beta_estimate", 
+                                 standard_error_name = "standard_error_matrix", 
                                  sided = 2, 
                                  direction = "pos") {
   if(is.null(names(input_list))){
@@ -256,7 +256,7 @@ compute_significance <- function(input_list,cell_type,effect_name,beta_name = "b
 #' @param input_list A list of model outputs with beta and covariance matrices.
 #' @param cell_type Character. Cell type of interest.
 #' @param effect_names Character vector of length 2 indicating the covariates to contrast.
-#' @param beta_name Name of the beta matrix (default: "beta_est").
+#' @param beta_name Name of the beta matrix (default: "beta_estimate").
 #' @param covariance_name Name of the covariance matrix (default: "vcov").
 #' @param sided Integer. 1 for one-sided, 2 for two-sided test.
 #' @param direction Character. "pos" or "neg", used if `sided = 1`.
@@ -264,7 +264,7 @@ compute_significance <- function(input_list,cell_type,effect_name,beta_name = "b
 #' @return A data frame with columns: name, pval, and qval.
 #'
 #' @export
-compute_contrast_significance = function(input_list,cell_type,effect_names,beta_name = "beta_est", 
+compute_contrast_significance = function(input_list,cell_type,effect_names,beta_name = "beta_estimate", 
                                          covariance_name = "vcov", 
                                          sided = 2, 
                                          direction = "pos") {

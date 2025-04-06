@@ -107,7 +107,7 @@ We can compute pvalues and qvalues for testing for accessibility differences in 
 sig_genes = compute_contrast_significance(input_list = res,
                                     cell_type = "Oligodendrocytes",
                                     effect_names = c("regionC3","regionC0"),
-                                    beta_name = "beta",covariance_name = "vcov",
+                                    beta_name = "beta_estimate",covariance_name = "vcov",
                                     sided = 1,direction = "pos")
 
 sig_genes = sig_genes%>%filter(!is.na(pval))
