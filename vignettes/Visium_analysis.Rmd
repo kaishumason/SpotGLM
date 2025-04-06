@@ -104,13 +104,13 @@ res = vector("list",num_genes)
 t1 = Sys.time()
 #run spotGLM for each gene
 for(j in c(1:num_genes)){
-  if(j%%1 == 0){
+  if(j%%500 == 0){
     print(j)
     print(Sys.time() - t1)
   }
   res[[j]] = spotglm::run_model(y = data$counts[,j],X = data$niche, lambda = data$deconv,
                              family = "spot poisson",offset = log(data$library_size),
-                             initialization = T,batch_size = 500)
+                             initialization = T,batch_size = 250)
 }
 names(res) = colnames(data$counts)
 
