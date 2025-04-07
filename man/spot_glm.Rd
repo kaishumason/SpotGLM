@@ -13,7 +13,7 @@ spot_glm(
   offset = rep(0, nrow(X)),
   weights = NULL,
   fix_coef = matrix(FALSE, ncol(X), ncol(lambda)),
-  learning_rate = 100,
+  learning_rate = 0.1,
   n_epochs = 50,
   batch_size = 128,
   max_diff = 1 - 1e-06,
