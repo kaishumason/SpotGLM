@@ -337,7 +337,7 @@ spot_glm = function(
         # If overshoot or small improvement, reduce step and try again
         if((lik_diff > 1 + 1e-6) | (lik_diff > 1 + 1e-6 & epoch > 1)) {
           learning_rate = learning_rate * 0.5
-
+          
           recompute_gradients = FALSE
         } else {
           # Accept update
@@ -450,6 +450,9 @@ spot_glm = function(
     # Could return # of epochs used, final learning rate, etc.
   ))
 }
+
+
+
 
 
 
@@ -1043,11 +1046,11 @@ run_single_cell = function(y,X,lambda,sc_family = "gaussian",offset = rep(0,leng
     weights_CT = weights[cells]
     #run regular regression 
     if(sc_family == "negative binomial"){
-      lm1 = suppressWarnings(glm(obs/weights_CT~offset(offset_CT) + features-1, family = "poisson",weights = weights_CT*lambda[cells,r]))
+      lm1 = suppressWarnings(glm(obs~offset(offset_CT) + features-1, family = "poisson",weights = weights_CT*lambda[cells,r]))
     }else if(sc_family == "binomial"){
       lm1 = suppressWarnings(glm(obs/weights_CT~ features-1, family = sc_family,weights = weights_CT*lambda[cells,r]))
     }else{
-      lm1 = suppressWarnings(glm(obs/weights_CT~offset(offset_CT) + features-1, family = sc_family,weights = weights_CT*lambda[cells,r]))
+      lm1 = suppressWarnings(glm(obs~offset(offset_CT) + features-1, family = sc_family,weights = weights_CT*lambda[cells,r]))
     }
     #get vcov matrix
     V = diag(vcov(lm1))
@@ -1170,7 +1173,6 @@ initialize_fix_coef = function(X,lambda,fix_coef = matrix(FALSE,ncol(X),ncol(lam
 #' }
 #'
 #' @export
-
 run_model = function(y,X,lambda,family = "spot gaussian",beta_0 = NULL,fix_coef = NULL,
                      offset = rep(0,length(y)),initialization = T,
                      CT = NULL, weights = rep(1,length(y)),ct_cov_weights = rep(1,ncol(lambda)),
@@ -1237,6 +1239,7 @@ run_model = function(y,X,lambda,family = "spot gaussian",beta_0 = NULL,fix_coef 
     #Step 1: get initial beta
     if(is.null(beta_0)){
       beta_0 = matrix(0,ncol(X),ncol(lambda))
+      beta_0[1,] = 0
     }else if( (nrow(beta_0)!= ncol(X)) |(ncol(beta_0)!= ncol(lambda))){
       stop("Initial beta matrix must be of dimension ncol(X) by ncol(lambda)")
     }
@@ -1247,8 +1250,10 @@ run_model = function(y,X,lambda,family = "spot gaussian",beta_0 = NULL,fix_coef 
     if(initialization == T){
       initial= spotglm:::run_single_cell(y = y, X = X, lambda = lambda,sc_family = sc_family,offset = offset,
                                                                    weights = weights,fix_coef = fix_coef,CT = CT)
-      beta_0 = initial$beta
+      #initialize fixed coeficients
       fix_coef = initial$fix_coef
+      #initialize beta 
+      beta_0[fix_coef == FALSE] = initial$beta_estimate[fix_coef == FALSE]
     }
     #Step 2: Get fix coef and good beta
     #get fixed coefficients 
@@ -1263,7 +1268,7 @@ run_model = function(y,X,lambda,family = "spot gaussian",beta_0 = NULL,fix_coef 
   t1 = Sys.time()
   LR = learning_rate
   conv = FALSE
-  result = spot_glm(X = X,y = y,lambda = lambda,beta_0 = beta_0,family = family,offset = offset,fix_coef = fix_coef,
+  result = spotglm:::spot_glm(X = X,y = y,lambda = lambda,beta_0 = beta_0,family = family,offset = offset,fix_coef = fix_coef,
           weights = weights,learning_rate = LR,
           n_epochs = n_epochs,batch_size = batch_size, max_diff = max_diff,improvement_threshold = improvement_threshold,max_conv = max_conv)
   
@@ -1283,7 +1288,6 @@ run_model = function(y,X,lambda,family = "spot gaussian",beta_0 = NULL,fix_coef 
                disp = result$dispersion,converged = result$converged,likelihood = result$likelihood,vcov = result$vcov,
                niter = result$num_epoch,fixed_coef = result$fixed_coef))
 }
-
 
 
 
@@ -1469,6 +1473,8 @@ run_model_parallel_windows = function(Y,X,lambda,family = "spot",beta_0 = NULL,f
   return(results)
   
 }
+
+
 
 #' Parallelized Spot-GLM Model Fitting (macOS / Linux)
 #'
