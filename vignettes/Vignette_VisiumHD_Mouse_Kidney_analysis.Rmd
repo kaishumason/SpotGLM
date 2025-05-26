@@ -1,0 +1,322 @@
+---
+title: "Visium Analysis"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Visium_analysis}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+We must load the following packages
+```
+library(spotglm)
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+```
+# Overview
+In this vignette we will go through a analysis using 1) SPARROW for submodular data selection, and 2) spotGLM on a Visium Mouse Kidney dataset. We will show data preprocessing steps for SPARROW and spotGLM, as well as downstream analysis. This dataset can be downloaded from 10X website (https://www.10xgenomics.com/datasets/visium-hd-cytassist-gene-expression-libraries-of-mouse-kidney). For each spot we define niche covariate X as anatomical regions. We will then fit a spotGLM to identify cell type specific niche-differential genes. 
+
+
+## Load Data
+
+We first load the data. 
+
+# Reading in Data
+First we read in the data input to prepare for spotGLM
+
+<details>
+  <summary>Input</summary>
+  
++ `deconv`: The deconvolution of each spot. of dimension number of spots by cell types
++ `EN`: The niche vector for each spot. Of dimension number of spots by kidney regions
++ `coords`: Coordinate matrix. Of dimension number of spots by 2
++ `counts`: The counts matrix for spot-by-gene matrix
+</details>
+
+```
+data_dir <- "mouse_kidney_data_input/"
+# Load Deconvolution Matrix
+deconv = readRDS(file.path(data_dir,"deconv_matrix.rds"))
+EN = readRDS(file.path(data_dir,"EN_covariate_matrix.rds"))
+
+# Prepare coordinates from 10X Output
+localdir <- "mouse_kidney/data/binned_outputs/square_008um"
+coords_all<-read_parquet(file.path(localdir, "spatial/tissue_positions.parquet"),as_data_frame = TRUE)
+coords_all <- as.data.frame(coords_all)
+rownames(coords_all)<-coords_all$barcode
+coord_df <- coords_all[coords_all$barcode %in% rownames(deconv),]
+coord_df <- coord_df[rownames(deconv),]
+
+# Prepare count matrix from 10X Output
+data <- Load10X_Spatial(data.dir = localdir)
+count <- data@assays$Spatial$counts
+count <- count[, rownames(deconv)]
+
+coords = coord_df[rownames(EN), ]
+counts = counts[rownames(EN), ]
+deconv = deconv[rownames(EN), ]
+
+
+```
+
+## Preprocess data
+We will filter lowly expressed genes and only perform SPARROW and spotGLM on genes with enough expression
+```
+# Filter Low expressed genes 
+gene_counts = colSums(counts)
+filtered_gene_counts <- gene_counts[gene_counts >= 30]
+filtered_gene_counts <- filtered_gene_counts[order(filtered_gene_counts,decreasing = T)]
+ngene = length(filtered_gene_counts)
+print(paste0("Numer of genes after filtering: ", ngene))
+# Order genes based on expression
+best_genes = order(filtered_gene_counts,decreasing = T)[1:ngene]
+counts = counts[, names(filtered_gene_counts[best_genes])]
+# Remove rare cell types
+deconv[deconv < 0.1] = 0
+deconv = t(apply(deconv,1,function(x){x/sum(x)}))
+# Get spot library sizes
+spot_size = rowSums(counts)
+# Get niche-DE covariates
+CT_weights = rep(1,ncol(deconv))
+deconv_weighted = t(apply(deconv,1,function(x){x*CT_weights}))
+deconv_weighted = t(apply(deconv,1,function(x){x/sum(x)}))
+original_CT = colnames(deconv)
+
+data = list()
+data$niche <- EN
+data$deconv <- deconv_weighted
+data$counts <- counts
+```
+
+## Perform SPARROW for submodular data selection
+```
+cutoff = -6.5
+data$library_size <- rowSums(counts)
+
+expanded_X = sparrow::expand_covariate_matrix(X = data$niche, lambda = data$deconv,
+                                              family = "negative binomial",lib_size = rowSums(counts),
+                                              min_reads_per_1000 = 1000*exp(cutoff))
+# Remove covariates with too many zero entries
+freq <- apply(expanded_X, 2, function(x) sum(x > 0) )
+bad_cov <- which(freq < 30)
+expanded_X <- expanded_X[, -bad_cov]
+
+target_standard_errors = sparrow::compute_target_standard_error(X = expanded_X,
+                                                                min_effect = 0.05,target_power_approx = 0.99)
+
+selected_indices = sparrow::data_selection(X = t(expanded_X),
+                                           max_data_size = 80000,
+                                           min_standard_error = target_standard_errors,
+                                           log = TRUE,period = 5000)
+selected_indices = selected_indices[is.na(selected_indices) == F]
+print(paste0("#Cells Subsampled: ", length(selected_indices)))
+
+deconv_weighted = deconv_weighted[selected_indices,]
+counts = counts[selected_indices,]
+coords = coords[selected_indices,]
+spot_size = spot_size[selected_indices]
+EN = EN[selected_indices,]
+
+
+lambda <- deconv_weighted
+X <- EN
+offset = log(spot_size)
+
+```
+## Initiate Beta (Optional): 
+
+We can initialize beta coefficients first and then run spotGLM. We want to only keep cell types express gene at a reasonable level. Therefore, after beta initialization, the cell types that express low gene expression is removed. 
+```
+initiate_beta <- function(Y, X, lambda, offset){
+  nCT = ncol(lambda)
+  CT_names = colnames(lambda)
+  
+  # Run single cell level model
+  skip = TRUE
+  tryCatch({
+    single_cell_model = run_single_cell(y = Y, X = matrix(1, nrow = length(Y), ncol = 1),
+                                        lambda = lambda, family = "poisson", offset = offset)
+    skip = FALSE
+  }, error = function(e) {})
+  
+  if (skip) {
+    return(NULL)
+  }
+  
+  # Get t stats for each cell type
+  T_stats = single_cell_model$beta_est / single_cell_model$stand_err_mat
+  
+  # Get which cell types express gene at a reasonable level
+  good_ct = which((T_stats < -1.96) & (single_cell_model$beta_est > -11))
+  
+  if (length(good_ct) == 0) {
+    return(NULL)
+  }
+  
+  # Remove bad cell types
+  lambda = lambda[, good_ct, drop = FALSE]
+  
+  # Remove cell types that are rare in a spot
+  lambda[lambda < 0.05] = 0
+  
+  # Remove bad spots (sparse spots)
+  bad_cells = which(rowSums(as.matrix(lambda)) < 0.05)
+  
+  # Remove bad rows
+  if (length(bad_cells) > 0) {
+    X = X[-bad_cells, ]
+    Y = Y[-bad_cells]
+    lambda = as.matrix(lambda)[-bad_cells, , drop = FALSE]
+    offset = offset[-bad_cells]
+  }
+  
+  # # Bind intercept
+  # X = cbind(1, X)
+  # colnames(X)[1] = "intercept"
+  
+  # Run IRLS
+  # beta_0 = matrix(0, ncol(X), ncol(lambda))
+  beta_0 = matrix(0, ncol(X), ncol(lambda))
+  for(j in c(1:ncol(lambda))){
+    beta_0[,j] = single_cell_model$beta_est[,good_ct][j]
+  }
+  
+  return(list(lambda, beta_0))
+}
+
+
+
+```
+## Perform SpotGLM 
+We now fit our spotGLM model. Let $X$ be the the covariate matrix where the $i$th row of X, $X_i$ corresponds to the $T$ dimensional effective niche vector described above. For a spot $s$, its gene expression is modeled as the sum of the cells that make up the sot and thus can be modeled as 
+
+$$Y_{s,g} \sim Pois(\mathbb{E}[Y_{s,g}|X_{s}])$$
+$$\mathbb{E}[Y_{s,g}|X_{i}] = \log(L_s) + \sum_{t} \pi_{s,t}\exp(X_s\beta^{t}_g) $$
+Here $L_s$ is the library size of spot $s$ and $\pi_{s,t}$ is the deconvolution estimate for cell type $t$ in spot $s$. This model can be fit using a spotGLM. to do this we use the "run model" function. This function takes several arguments, the most important of which are below
+This model can be fit using a `spotGLM`. To do this, we use the `run_model()` function. 
+
+Because the model is gene-specific, it is recommended to run the model in parallel. 
+
+```
+family <- "spot negative binomial"
+G = 0.1
+data_size = 8 * prod(dim(counts))/1e+09
+#number of chunks needed
+nchunks = ceiling(data_size/G)
+chunk_size = ceiling(ncol(counts)/nchunks)
+grouping <- rep(1:nchunks, each = chunk_size, length.out = ncol(counts))
+index_chunks = split(1:ncol(counts), grouping)
+chunk_counter = 1
+T_1 = Sys.time()
+for (I in c(1:length(index_chunks))) {
+  t1 = Sys.time()
+  print("Initializing cluster")
+  cluster <- parallel::makeCluster(5, outfile = "")
+  doParallel::registerDoParallel(cluster)
+  clusterExport(cluster, varlist = c("spot_negative_binomial"))
+  print(paste0("Evaluating chunk ", I, " out of ",
+               nchunks))
+  counts_chunk = as.matrix(counts[, index_chunks[[I]]])
+  NC = ncol(counts_chunk)
+  results_chunk = foreach::foreach(i = 1:NC, .export = c("X", "lambda", "family","offset",
+                                                         "counts_chunk")) %dopar% {
+                                                           if(i%%1 == 1){
+                                                             print(i)
+                                                             print(Sys.time())
+                                                           }
+                                                           
+                                                           print(Sys.time())
+                                                           Y = counts_chunk[, i]
+                                                           spotglm::run_model(Y,X = X, lambda = lambda,family = family, offset = offset,learning_rate = 0.1, batch_size = 128,n_epoch = 250)
+                                                         }
+  if (chunk_counter == 1) {
+    results = results_chunk
+  }
+  else {
+    results = c(results, results_chunk)
+  }
+  rm(counts_chunk)
+  gc()
+  chunk_counter = chunk_counter + 1
+  print("Closing cluster")
+  parallel::stopCluster(cluster)
+  print(paste0("Chunk took ",Sys.time() - t1))
+}
+names(results) = colnames(counts)
+T_2 = Sys.time()
+```
+
+
+### Downstream Analysis: Determining Niche Differential Marker Genes
+We perform a contrast test to see if a gene is niche-marker gene. A niche marker gene for a cell type $t$ is one in which 
+$$\beta^{t}_{n_1,g} \neq \beta^{t}_{n_2,g}$$
+that is that we can differentiate whether cell type $t$ is near a niche enriched by niche1 $n_1$ or niche $n_2$ by looking at its gene expression for gene $g$. We can do this using the `compute_contrast_significance()` function. Here we are finding niche marker genes in Endothelial cells when near Papilla region vs Cortex region. We set side = 1 and direction = "pos" so that the genes correspond to those that are upregulated in Endothelial cells in Papilla region versus Cortex region.
+
+```
+contrast_test_1 <- c("Endothelial cells", ".data_Papilla" , ".data_Cortex")
+index <- contrast_test_1[1]
+niche1 <- contrast_test_1[2]
+niche2 <- contrast_test_1[3]
+
+print(paste0("Index celltype is ", index, ", niche 1: ", niche1, "; niche 2: ", niche2))
+sig_genes = compute_contrast_significance(input_list = results,
+                                          cell_type = index,
+                                          effect_names = c(niche1, niche2),
+                                          beta_name = "beta_estimate",covariance_name = "vcov",
+                                          sided = 1,direction = "pos")
+sig_genes = sig_genes%>%dplyr::filter(!is.na(pval))
+
+```
+
+### Plots
+
+We could visualize the set of genes upregulated in cell type $t$ (e.g. Endothelial cells) in region 1 $n_1$ versus region 2 $n_2$, (e.g. Papilla region versus Cortex region) through QQ plot.
+
+```library(ggplot2)
+library(ggrepel)
+
+sig_genes_df <- sig_genes[order(sig_genes$test_statistic, decreasing = TRUE), ]
+sig_genes_df$gene <- rownames(sig_genes_df)
+
+qq <- qqnorm(sig_genes_df$test_statistic, plot.it = FALSE)
+sig_genes_df$theoretical <- qq$x  # theoretical quantiles
+sig_genes_df$sample <- qq$y       # sample quantiles
+mean(qq$x, na.rm=TRUE)
+var(qq$x, na.rm=TRUE)
+# Compute the slope and intercept for the QQ line
+q1_sample <- quantile(sig_genes_df$test_statistic, 0.25, na.rm=TRUE)
+q3_sample <- quantile(sig_genes_df$test_statistic, 0.75, na.rm=TRUE)
+q1_theor  <- qnorm(0.25)
+q3_theor  <- qnorm(0.75)
+slope     <- (q3_sample - q1_sample) / (q3_theor - q1_theor)
+intercept <- q1_sample - slope * q1_theor
+
+# Select the top genes by highest t_test_stat
+top_n <- 35
+top_df <- sig_genes_df[order(sig_genes_df$test_statistic, decreasing = TRUE)[1:top_n], ]
+# Create the QQ plot using ggplot2 with ggrepel for labeled boxes
+p <- ggplot(sig_genes_df, aes(x = theoretical, y = sample)) +
+  geom_point() +
+  geom_abline(intercept = intercept, slope = slope, color = "red", size = 1) +
+  geom_label_repel(data = top_df, aes(label = gene),
+                   box.padding = 0.35, point.padding = 0.5, # size = 10, 
+                   segment.color = "grey50", max.overlaps = 50) +
+  labs(x = "Theoretical Quantiles", 
+       y = "Sample Quantiles", 
+       title = paste0(index, ": ", str_replace(niche1, ".data_", ""), " vs.", str_replace(niche2, ".data_", ""))) +
+  theme_minimal() +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5))
+print(p)
+
+```
+
+
+
