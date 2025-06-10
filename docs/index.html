@@ -5,14 +5,14 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>SpotGLM: A package for cell type specific differential testing of spatial-omic data • spotglm</title>
+<title>SpotGLM: Cell-Type-Specific Differential Testing for Spatial Omics Data • spotGLM</title>
 <script src="deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="SpotGLM: A package for cell type specific differential testing of spatial-omic data">
-<meta name="description" content="More about what it does (maybe more than one line)">
-<meta property="og:description" content="More about what it does (maybe more than one line)">
+<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="SpotGLM: Cell-Type-Specific Differential Testing for Spatial Omics Data">
+<meta name="description" content="Cell type specific differential testing of spatial-omic data">
+<meta property="og:description" content="Cell type specific differential testing of spatial-omic data">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -20,7 +20,7 @@
 
     <nav class="navbar navbar-expand-lg fixed-top bg-light" data-bs-theme="light" aria-label="Site navigation"><div class="container">
 
-    <a class="navbar-brand me-2" href="index.html">spotglm</a>
+    <a class="navbar-brand me-2" href="index.html">spotGLM</a>
 
     <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
 
@@ -47,6 +47,7 @@
 <li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="search.json">
 </form></li>
+<li class="nav-item"><a class="nav-link" href="https://github.com/kaishumason/spotGLM/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
 
@@ -57,9 +58,34 @@
   <main id="main" class="col-md-9"><div class="section level1">
 <div class="page-header"><h1 id="spotglm">SpotGLM<a class="anchor" aria-label="anchor" href="#spotglm"></a>
 </h1></div>
-<p>SpotGLM is a package for cell type specific differential testing in spatial-omic data</p>
+<p>SpotGLM is an R package for performing cell type-specific differential analysis in spatial omics data. It adapts to different data modalities, such as gene expression, chromatin accessibility, or isoform usage, and identifies cell type specific changes associated with local tissue context. SpotGLM accounts for the mixed-cell composition inherent to spatial barcoding technologies.</p>
+<p>For improved <em>speed and scalability</em>, SpotGLM can be paired with the <span>SPARROW</span> package, which selects a power-preserving subset of spatial spots for efficient downstream analysis without sacrificing power.</p>
+<p><img src="reference/figures/schematic.png"></p>
+<p>To begin using SpotGLM, check out the <a href="articles/Intro_to_SpotGLM.html">tutorials</a>.</p>
+<div class="section level2">
+<h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
+</h2>
+<p>To install SpotGLM from GitHub:</p>
 </div>
-  </main><aside class="col-md-3"><div class="license">
+<div class="section level2">
+<h2 id="getting-started">Getting Started<a class="anchor" aria-label="anchor" href="#getting-started"></a>
+</h2>
+<p>Use the following tutorials to get started on your data:</p>
+<p><a href="articles/Intro_to_SpotGLM.html">Introduction to SpotGLM</a></p>
+<p><a href="articles/Vignette_VisiumHD_Mouse_Kidney_analysis.html">Using SpotGLM with SPARROW on Visium HD</a></p>
+<p><a href="articles/Visium_analysis.html">Another example of Visium HD Analysis</a></p>
+<p><a href="articles/Spatial_Long_Read_analysis.html">SpotGLM for isoform switching analysis on spatial long read data</a></p>
+<p><a href="articles/Spatial_ATAC_analysis.html">SpotGLM for spatial ATAC analysis</a></p>
+</div>
+</div>
+  </main><aside class="col-md-3"><div class="links">
+<h2 data-toc-skip>Links</h2>
+<ul class="list-unstyled">
+<li><a href="https://github.com/kaishumason/spotGLM/">Browse source code</a></li>
+</ul>
+</div>
+
+<div class="license">
 <h2 data-toc-skip>License</h2>
 <ul class="list-unstyled">
 <li><a href="https://opensource.org/licenses/mit-license.php" class="external-link">MIT</a></li>
@@ -70,14 +96,16 @@
 <div class="citation">
 <h2 data-toc-skip>Citation</h2>
 <ul class="list-unstyled">
-<li><a href="authors.html#citation">Citing spotglm</a></li>
+<li><a href="authors.html#citation">Citing spotGLM</a></li>
 </ul>
 </div>
 
 <div class="developers">
 <h2 data-toc-skip>Developers</h2>
 <ul class="list-unstyled">
-<li>Kaishu Mason <br><small class="roles"> Maintainer </small>   </li>
+<li>Kaishu Mason <br><small class="roles"> Author </small>   </li>
+<li>Yijia Jiang <br><small class="roles"> Author </small>   </li>
+<li>Nancy R. Zhang <br><small class="roles"> Author, maintainer </small>   </li>
 </ul>
 </div>
 
@@ -88,7 +116,7 @@
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Kaishu Mason.</p>
+  <p>Developed by Kaishu Mason, Yijia Jiang, Nancy R. Zhang.</p>
 </div>
 
 <div class="pkgdown-footer-right">
