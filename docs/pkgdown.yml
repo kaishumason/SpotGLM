@@ -1,9 +1,10 @@
-pandoc: 3.1.1
-pkgdown: 2.1.1
+pandoc: '3.2'
+pkgdown: 2.1.3
 pkgdown_sha: ~
 articles:
   Intro_to_SpotGLM: Intro_to_SpotGLM.html
   Spatial_ATAC_analysis: Spatial_ATAC_analysis.html
   Spatial_Long_Read_analysis: Spatial_Long_Read_analysis.html
+  Vignette_VisiumHD_Mouse_Kidney_analysis: Vignette_VisiumHD_Mouse_Kidney_analysis.html
   Visium_analysis: Visium_analysis.html
-last_built: 2025-03-30T22:39Z
+last_built: 2025-06-10T13:59Z
