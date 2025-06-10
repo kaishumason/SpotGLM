@@ -11,4 +11,4 @@ For improved *speed and scalability*, SpotGLM can be paired with the [SPARROW]{}
 which selects a power-preserving subset of spatial spots for efficient downstream analysis 
 without sacrificing power.
 
-![](man/figures/schematic.png)
+![Schematic of SpotGLM Analysis Framework](man/figures/schematic.png)
