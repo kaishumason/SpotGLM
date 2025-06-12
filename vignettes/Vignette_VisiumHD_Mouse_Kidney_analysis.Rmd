@@ -34,9 +34,14 @@ We will use the publicly available Visium HD mouse kidney dataset, which can be 
 
 We need to first perform deconvolution on each spot to get the cell type proportions. For spatial niches, we will use spatial domains detected through histological image analysis of the same-slide H&E image, as described in the paper.  We have included the scripts for these processing steps here. Since this preprocessing is time consuming, we have also included the processed data files for you to load, to start the spotGLM analysis.  
 
-# Preprocess Data (Optional)
 
-1. We will use RCTD (Cable, D.M., et al.) as an example for celltype deconvolution, but users can use any other deconvolution method to get the celltype proportion matrix. Deconvolution starts from the raw data matrix and takes a couple of hours. This step can be skipped, but users can use the script below to get the deconvolution results. 
+# Prepare Data
+
+We need to input files for spotGLM: celltype deconvolution matrix, and spatial niche matrix. 
+
+- We will use RCTD (Cable, D.M., et al.) as an example for celltype deconvolution, but users can use any other deconvolution method to get the celltype proportion matrix. Deconvolution starts from the raw data matrix and takes a couple of hours. This step can be skipped, but users can use the script below to get the deconvolution results. 
+
+- Spatial niches are defined using kidney anatomical regions. We identified spatial domains and manually annotated kidney anatomical regions from histological image features using iSTAR (Zhang, D. et al.). This file is directly provided for spotGLM analysis. Each spot is assigned with a dummy variable of kidney anatomical region.
 
 ```
 localdir <- "mouse_kidney_data_input/data/binned_outputs/square_008um"
@@ -97,7 +102,6 @@ saveRDS(count, file.path(output_dir, "count_matrix.rds"))
 
 ```
 
-2. Spatial niches are defined using kidney anatomical regions. We identified spatial domains and manually annotated kidney anatomical regions from histological image features using iSTAR (Zhang, D. et al.). This file is directly provided for spotGLM analysis. Each spot is assigned with a dummy variable of kidney anatomical region.
 
 
 # Load Data
@@ -130,8 +134,6 @@ deconv = deconv[rownames(EN), ]
 The spotGLM model runs at gene-specific manner. For the purpose of this tutorial, we show spotGLM on a selected list of genes. To run spotGLM efficiently, we recommend filter lowly expressed genes and perform SPARROW and spotGLM on genes only with enough expression.
 
 ```
-selected_genelist <- readRDS( "test_data/genelist.rds")
-
 # Remove rare cell types
 deconv[deconv < 0.1] = 0
 deconv = t(apply(deconv,1,function(x){x/sum(x)}))
@@ -145,6 +147,9 @@ deconv_weighted = t(apply(deconv,1,function(x){x*CT_weights}))
 deconv_weighted = t(apply(deconv,1,function(x){x/sum(x)}))
 original_CT = colnames(deconv)
 
+selected_genelist <- readRDS( "test_data/genelist.rds")
+counts = counts[, genelist]
+
 data = list()
 data$niche <- EN
 data$deconv <- deconv_weighted
@@ -154,7 +159,7 @@ data$counts <- counts
 # Perform SPARROW for submodular data selection
 SPARROW (Submodular Power Adaptive data Reduction for Representative dOWnstream analysis) is a method that selects a subsample of size $K$ from a large scale dataset. The subsample is chosen such that it maximizes the power of a downstream analysis (e.g. regression) by minimizing the trace of $(X^TX)^{-1}$ which corresponds to the sum of the square of the standard errors of a standard linear regression. 
 
-In this analysis, we use sparrow to select 10,000 spots with 18 cell types and 7 spatial niches. Each spot contains at most 2 cell types. 
+In the following test analysis, we used sparrow to select 10,000 spots with 18 cell types and 7 spatial niches. Each spot contains at most 2 cell types. However, we recommend to set maximum data size to 80,000 for general use.
 
 ```
 cutoff = -6.5
@@ -184,15 +189,19 @@ counts = counts[selected_indices,]
 coords = coords[selected_indices,]
 spot_size = spot_size[selected_indices]
 EN = EN[selected_indices,]
-
 ```
+
 
 # Perform SpotGLM 
 We now fit our spotGLM model. Let $X$ be the the covariate matrix where the $i$th row of X, $X_i$ corresponds to the $T$ dimensional effective niche vector described above. For a spot $s$, its gene expression is modeled as the sum of the cells that make up the sot and thus can be modeled as 
 
 $$Y_{s,g} \sim Pois(\mathbb{E}[Y_{s,g}|X_{s}])$$
 $$\mathbb{E}[Y_{s,g}|X_{i}] = \log(L_s) + \sum_{t} \pi_{s,t}\exp(X_s\beta^{t}_g) $$
-Here $L_s$ is the library size of spot $s$ and $\pi_{s,t}$ is the deconvolution estimate for cell type $t$ in spot $s$. This model can be fit using a spotGLM. To do this, we use the `run_model()` function. In this tutorial, we test the model for ~230 genes and 10,000 spots. This process takes ~9 minutes.
+Here $L_s$ is the library size of spot $s$ and $\pi_{s,t}$ is the deconvolution estimate for cell type $t$ in spot $s$. This model can be fit using a spotGLM. To do this, we use the `run_model()` function. 
+
+### Test case
+
+In this test tutorial, we test the model for ~230 genes and 10,000 spots. This process takes ~9 minutes. 
 
 ```
 X <- EN
@@ -219,6 +228,69 @@ t2 = Sys.time()
 
 ```
 
+### General case
+For more general case, we recommend using parallel computing, which takes about ~1 minute.
+
+<details>
+  <summary> spotGLM general case </summary>
+  
+```
+library(parallel)
+library(foreach)
+family <- "spot negative binomial"
+G = 0.1
+data_size = 8 * prod(dim(counts))/1e+09
+#number of chunks needed
+nchunks = ceiling(data_size/G)
+chunk_size = ceiling(ncol(counts)/nchunks)
+grouping <- rep(1:nchunks, each = chunk_size, length.out = ncol(counts))
+index_chunks = split(1:ncol(counts), grouping)
+chunk_counter = 1
+T_1 = Sys.time()
+for (I in c(1:length(index_chunks))) {
+  t1 = Sys.time()
+  print("Initializing cluster")
+  cluster <- parallel::makeCluster(5, outfile = "")
+  doParallel::registerDoParallel(cluster)
+  clusterExport(cluster, varlist = c("spot_negative_binomial"))
+  print(paste0("Evaluating chunk ", I, " out of ",
+               nchunks))
+  counts_chunk = as.matrix(counts[, index_chunks[[I]]])
+  NC = ncol(counts_chunk)
+  results_chunk = foreach::foreach(i = 1:NC, .export = c("X", "lambda", "family","offset",
+                                                         "counts_chunk")) %dopar% {
+                                                           if(i%%1 == 1){
+                                                             print(i)
+                                                             print(Sys.time())
+                                                           }
+                                                           
+                                                           print(Sys.time())
+                                                           Y = counts_chunk[, i]
+                                                           spotglm::run_model(Y, X = X, lambda = lambda,family = family, offset = offset,learning_rate = 0.1, batch_size = 128,n_epoch = 250)
+                                                         }
+  if (chunk_counter == 1) {
+    results = results_chunk
+  }
+  else {
+    results = c(results, results_chunk)
+  }
+  rm(counts_chunk)
+  gc()
+  chunk_counter = chunk_counter + 1
+  print("Closing cluster")
+  parallel::stopCluster(cluster)
+  print(paste0("Chunk took ",Sys.time() - t1))
+}
+names(results) = colnames(counts)
+T_2 = Sys.time()
+
+print(T_1)
+print(T_2)
+
+```
+
+
+
 # Downstream Analysis: Determining Niche Differential Marker Genes
 We perform a contrast test to see if a gene is niche-marker gene. A niche marker gene for a cell type $t$ is one in which 
 $$\beta^{t}_{n_1,g} \neq \beta^{t}_{n_2,g}$$
@@ -242,6 +314,7 @@ sig_genes = sig_genes%>%dplyr::filter(!is.na(pval))
 
 # Data Visualization
 
+### QQplot 
 We could visualize the set of genes upregulated in cell type $t$ (e.g. Endothelial cells) in region 1 $n_1$ versus region 2 $n_2$, (e.g. Papilla region versus Cortex region) through QQ plot.
 
 ```
@@ -283,5 +356,68 @@ print(p)
 
 ```
 
+### Example gene: Igfbp3
+We showcase an example of a gene that shows differential gene expression in endothelial cells between the Papilla and the Cortex region. 
+
+```
+gene <- "Igfbp3"
+
+# Filter spots in two regions
+region_filter <- data$niche[, ".data_Cortex"] == 1 | data$niche[, ".data_IM"] == 1
+
+# Normalize the count
+counts_data <- data$counts
+total_counts <- colSums(counts_data)
+scale_factor <- 1e4
+scaled_counts <- t(t(counts_data) / total_counts) * scale_factor
+normalized_counts <- log1p(scaled_counts)
+data$normcounts <- normalized_counts
+
+# gene expression 
+gene_expr <- data$normcounts[region_filter, gene]
+
+cellprop_score <- data$deconv[region_filter, "Endothelial cells" ]
+
+region_label <- ifelse(data$niche[region_filter, ".data_Cortex"] == 1, "Cortex", "IM")
+
+# Create plotting data frame
+plot_df <- data.frame(
+  x = data$coords[region_filter, 2],
+  y = data$coords[region_filter, 1],
+  Gene = gene_expr,
+  region = region_label,
+  celltype = cellprop_score
+)
+
+# === Plot 1: Gene expression levels ===
+p1 <- ggplot(plot_df, aes(x = x, y = y, color = Gene)) +
+  geom_point(size = 2) +
+  scale_color_viridis_c() +
+  labs(title = paste0(gene, " Gene expression value"), color = gene) +
+  coord_fixed() +
+  theme_minimal() + 
+  scale_color_gradient(low = "blue", high = "red") 
+
+# === Plot 2: Region annotation ===
+p2 <- ggplot(plot_df, aes(x = x, y = y, color = region)) +
+  geom_point(size = 2) +
+  scale_color_manual(values = c("Cortex" = "#1f78b4", "IM" = "#33a02c")) +
+  labs(title = "Region Membership", color = "Region") +
+  coord_fixed() +
+  theme_minimal()
+
+# === Plot 3: Endoehelial cell type proportion ===
+p3 <- ggplot(plot_df, aes(x = x, y = y, color = celltype)) +
+  geom_point(size = 2) +
+  scale_color_viridis_c() +
+  labs(title = "Deconvolution Proportion") +
+  coord_fixed() +
+  theme_minimal() + 
+   scale_color_gradient(low = "blue", high = "red") 
+
+p1
+p2
+p3
 
 
+```
