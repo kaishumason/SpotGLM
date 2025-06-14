@@ -362,28 +362,30 @@ We showcase an example of a gene that shows differential gene expression in endo
 ```
 gene <- "Igfbp3"
 
-# Filter spots in two regions
-region_filter <- data$niche[, ".data_Cortex"] == 1 | data$niche[, ".data_IM"] == 1
+data_sparrow = list()
+data_sparrow$niche <- EN
+data_sparrow$deconv <- deconv_weighted
+data_sparrow$counts <- counts
+data_sparrow$coords <- coords[, c(3:4)]
 
-# Normalize the count
-counts_data <- data$counts
-total_counts <- colSums(counts_data)
+region_filter <- data_sparrow$niche[, ".data_Cortex"] == 1 | data_sparrow$niche[, ".data_IM"] == 1
+
+counts <- data_sparrow$counts
+total_counts <- colSums(counts)
 scale_factor <- 1e4
-scaled_counts <- t(t(counts_data) / total_counts) * scale_factor
+scaled_counts <- t(t(counts) / total_counts) * scale_factor
 normalized_counts <- log1p(scaled_counts)
-data$normcounts <- normalized_counts
+data_sparrow$normcounts <- normalized_counts
 
 # gene expression 
-gene_expr <- data$normcounts[region_filter, gene]
-
-cellprop_score <- data$deconv[region_filter, "Endothelial cells" ]
-
-region_label <- ifelse(data$niche[region_filter, ".data_Cortex"] == 1, "Cortex", "IM")
+gene_expr <- data_sparrow$normcounts[region_filter, gene]
+cellprop_score <- data_sparrow$deconv[region_filter, "Endothelial cells" ]
+region_label <- ifelse(data_sparrow$niche[region_filter, ".data_Cortex"] == 1, "Cortex", "IM")
 
 # Create plotting data frame
 plot_df <- data.frame(
-  x = data$coords[region_filter, 2],
-  y = data$coords[region_filter, 1],
+  x = data_sparrow$coords[region_filter, 2],
+  y = data_sparrow$coords[region_filter, 1],
   Gene = gene_expr,
   region = region_label,
   celltype = cellprop_score
