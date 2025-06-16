@@ -31,7 +31,7 @@ In this vignette we will go through a typical analysis using spotGLM on a spatia
 
 ## Read Data
 
-We will read in data with the `read_spatial_long_read()` function. The function returns the following
+We will read in data with the `read_spatial_atac()` function. The function returns the following
 <details>
   <summary>Output</summary>
   + `coords`: Coordinate matrix. Of dimension 9215 by 2
@@ -39,7 +39,6 @@ We will read in data with the `read_spatial_long_read()` function. The function 
 + `deconv`: The deconvolution of each spot. of dimension 9215 by 9
 + `motif_scores`: The motif score for each spot. A matrix of dimension 9215 by 746.
 </details>
-
 
 
 ```

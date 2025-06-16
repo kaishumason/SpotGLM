@@ -37,11 +37,9 @@ We need to first perform deconvolution on each spot to get the cell type proport
 
 # Prepare Data
 
-We need to input files for spotGLM: celltype deconvolution matrix, and spatial niche matrix. 
+We need to input files for spotGLM: celltype deconvolution matrix, and spatial niche matrix. All data required for deconvolution and spatial niches can be found here: https://www.dropbox.com/scl/fo/qi0ij5n2sdo7zz68tajfa/AEe4nXVqldBGK1KBmh7nU8c?rlkey=208dfsao16jvq45uvj0evazpz&dl=0 
 
 - We will use RCTD (Cable, D.M., et al.) as an example for celltype deconvolution, but users can use any other deconvolution method to get the celltype proportion matrix. Deconvolution starts from the raw data matrix and takes a couple of hours. This step can be skipped, but users can use the script below to get the deconvolution results. 
-
-- Spatial niches are defined using kidney anatomical regions. We identified spatial domains and manually annotated kidney anatomical regions from histological image features using iSTAR (Zhang, D. et al.). This file is directly provided for spotGLM analysis. Each spot is assigned with a dummy variable of kidney anatomical region.
 
 ```
 localdir <- "mouse_kidney_data_input/data/binned_outputs/square_008um"
@@ -102,6 +100,16 @@ saveRDS(count, file.path(output_dir, "count_matrix.rds"))
 
 ```
 
+- Spatial niches are defined using kidney anatomical regions. We identified spatial domains and manually annotated kidney anatomical regions from histological image features using iSTAR (Zhang, D. et al.). This file is directly provided for spotGLM analysis. Each spot is assigned with a dummy variable of kidney anatomical region.
+
+```
+regions_df <- read.csv(file.path("mouse_kidney_data_input/data/kidney_region_annotation/istar_output/nclusters10-hist/", "spots_he_cluster.csv"), row.names = 1)
+regions_df = regions_df[regions_df$he_clusters_region != "Region0",]
+regions <- regions_df$he_clusters_region
+names(regions) <- rownames(regions_df)
+EN = as.matrix(dummy_cols(regions)[, -c(1)])
+saveRDS(EN, "EN_covariate_matrix.rds")
+```
 
 
 # Load Data
@@ -147,7 +155,7 @@ deconv_weighted = t(apply(deconv,1,function(x){x*CT_weights}))
 deconv_weighted = t(apply(deconv,1,function(x){x/sum(x)}))
 original_CT = colnames(deconv)
 
-selected_genelist <- readRDS( "test_data/genelist.rds")
+selected_genelist <- readRDS( "test_genes/genelist.rds")
 counts = counts[, genelist]
 
 data = list()
