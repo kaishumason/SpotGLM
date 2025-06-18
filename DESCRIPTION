@@ -27,7 +27,7 @@ Suggests:
 Imports:
 	pbmcapply,
 	promises,
-	SPARROW
+	sparrow
 Remotes:
 	kaishumason/SPARROW
 VignetteBuilder: knitr
