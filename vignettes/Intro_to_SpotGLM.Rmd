@@ -14,18 +14,25 @@ knitr::opts_chunk$set(
 )
 ```
 
-We first load all required packages 
+In this tutorial, we will use a simulated data set to illustrate how SpotGLM works.  We use simulations as it is more straightforward to illustrate the probabilistic modeling framework underlying SpotGLM, and allows us to directly compare trade-offs in terms of power and specificity.
+
+*Let's get started!*
+
+First, load all required packages:
+
 ```
 library(spotglm)
 library(sparrow)
 ```
 
+the package [sparrow](https://kaishumason.github.io/SPARROW/) allows for fast and scalable computation, as detailed in our paper.
 
-## Step 1: Simulating Data 
+## Step 1: Simulate the data
 
-We use the simulate data function in sparrow to simulate 100,000 spots with 8 cell types. Each spot contains at most 2 cell types. We simulate data according to the model 
+We use the simulate data function in sparrow to generate a virtual spatial transcriptomic data with **100,000 spots**.  We assume that their are **8 cell types**, and that each spot straddles at most 2 cell types. We simulate data according to the model:
+
 $$Y_i \sim Pois(\sum_{t=1}^{T}\lambda_{i,t}\exp(X_i\beta^t + \log(1000)))$$
-Here $Y_i$ is the response (e.g. gene expression) for spot $i$, $X_i$ is the covariate vector for spot $i$,$t$ denotes a cell type, $\lambda_{i,t}$ is the deconvolution estimate for cell type $t$ in spot $i$, and $\beta^t$ is the effect vector for cell type $t$. Note that each cell type gets a different effect vector. Also note that the columns of $X$ are bounded between 0 and 1. Bounding all columns between some interval is recommended to prevent scaling issues and to make interpretation easier. 
+Here $Y_i$ is the response (e.g. gene expression) for spot $i$, $X_i$ is the covariate vector for spot $i$,$t$ indexes across the cell types, $\lambda_{i,t}$ is the deconvolution estimate for cell type $t$ in spot $i$, and $\beta^t$ is the effect vector for cell type $t$. Note that each cell type gets a different effect vector. Also note that the columns of $X$ are bounded between 0 and 1. Bounding all columns between some interval is recommended to prevent scaling issues and to make interpretation easier. 
 ```
 data = sparrow::simulate_data(n = 1e5, nct = 8,family = "poisson",
                               effect_range = c(-2,2),
@@ -45,8 +52,12 @@ colnames(data$lambda) = paste0("cell_type_",c(1:ncol(data$lambda)))
 SpotGLM is a method for fitting model of the form
 
 $$Y_s|X_s \sim G$$
+where
+
 $$\mathbb{E}[Y_{s}|X_{s}] = \sum_{t}\lambda_{s,t}F^{-1}(X_{s}\beta^t)$$
-Here $t$ index a cell type and $\lambda_{s,t}$ is the weighting for cell type $t$ in spot $s$. $\beta^t$ is the weight vector for cell type $t$ and $X_s$ is the covariate vector for spot $s$. In general,to specify a spotGLM one needs to first specify single cell level models, that is models that would be used if the data were of single cell resolution. Then they relate the response of a spot $s$ to that of the cell types that belong to the spot.\
+Here $t$ index a cell type and $\lambda_{s,t}$ is the weighting for cell type $t$ in spot $s$. $\beta^t$ is the weight vector for cell type $t$ and $X_s$ is the covariate vector for spot $s$. In general,to specify a spotGLM one needs to first specify single cell level models, that is models that would be used if the data were of single cell resolution. Then they relate the response of a spot $s$ to that of the cell types that belong to the spot.
+
+
 For example, consider a single cell level generalized linear model where for a cell $i$
 $$F(\mathbb{E}[Y_{i}|X_{i}]) = X_i\beta^{CT(i)}$$
 Here $CT(i)$ is the cell type identity of cell $i$. Common formulations of $F$ include $F(x) = x$ (ordinary least squares), $F(x) = \log(x)$ (poisson or negative binomial regression), or $F(x) = \text{logit}(x)$ (logistic regression). For now let us assume that we are using a poisson or negative binomial model as is common in spatial transcriptomic data. In this case we have 
@@ -54,12 +65,15 @@ Here $CT(i)$ is the cell type identity of cell $i$. Common formulations of $F$ i
 $$\log(\mathbb{E}[Y_{i}|X_{i}]) = \log(L_i) + X_i\beta^{CT(i)}$$
 Where $L_i$ is the library size of cell $i$. 
 
-\
+
 Now we need to relate a spot's response to the responses of the cells that lay in the spot. Accounting for the library size of spot $s$, $L_s$, we can model the response of spot $s$ to be the weighted average of the cells that belong to the spot. Let $L_t$ be the expected library size of a cell of type $t$. Then  
 $$Y_{s}|X_{s} \sim Pois(\mathbb{E}[Y_{i}|X_{s}])$$
-$$\mathbb{E}[Y_{s}|X_{s}] = \sum_{i:i\in s}\mathbb{E}[Y_{i}|X_{s}] = \sum_{t}n_{s,t}L_t\exp(X_s\beta^{t}) \approx L_s\sum_{t}\pi_{s,t}\exp(X_s\beta^t) = \sum_{t}\pi_{s,t}\exp(X_s\beta^t + \log(L_s))$$
+where
 
-here $L_s$ is the library size for spot $s$, $\pi_{s,t}$ can be thought of as the deconvolution amount of cell type $t$ in spot $s$. This form matches the spotGLM form and thus we can use the spotGLM package to fit this model. \
+$$\begin{align} \mathbb{E}[Y_{s}|X_{s}] = \sum_{i:i\in s}\mathbb{E}[Y_{i}|X_{s}] &= \sum_{t}n_{s,t}L_t\exp(X_s\beta^{t})\\ &\approx L_s\sum_{t}\pi_{s,t}\exp(X_s\beta^t)\\ &= \sum_{t}\pi_{s,t}\exp(X_s\beta^t + \log(L_s)).
+\end{align}$$
+
+Here, $L_s$ is the library size for spot $s$, $\pi_{s,t}$ can be thought of as the deconvolution amount of cell type $t$ in spot $s$. This form matches the spotGLM form and thus we can use the spotGLM package to fit this model. 
 
 ## Fitting SpotGLM
 
@@ -137,7 +151,7 @@ plot(data$beta[-1,],model$beta_estimate[-1,])
 abline(a=0,b=1,col = "red")
 
 ```
-### Interpretting Outputs
+### Interpreting Outputs
 The beta estimates can be found via `beta_estimate` index. We see that the column names correspond to cell types and the row names correspond to the effect names. To find the estimated effect vector $\beta^t$, one simply needs to look at the relevant column of the matrix. 
 ```
 model$beta_estimate

@@ -493,12 +493,12 @@ read_visiumHD = function(){
 #'
 #' @examples
 #' \dontrun{
-#' visium_data <- read_visium()
+#' visium_data <- read_example_visium_colorectal_cancer_data()
 #' str(visium_data)
 #' }
 #'
 #' @export
-read_visium = function(){
+read_example_visium_colorectal_cancer_data = function(){
   #read coordinates
   url <- "https://raw.githubusercontent.com/kaishumason/SpotGLM-Example-Data/main/Visium/coords.rds"
   # Temporary file to store the .rds
@@ -586,12 +586,12 @@ read_visium = function(){
 #'
 #' @examples
 #' \dontrun{
-#' atac_data <- read_spatial_atac()
+#' atac_data <- read_example_spatial_mouse_brain_atac_data()
 #' names(atac_data)
 #' }
 #'
 #' @export
-read_spatial_atac = function(){
+read_example_spatial_mouse_brain_atac_data = function(){
   #read coordinates
   url <- "https://raw.githubusercontent.com/kaishumason/SpotGLM-Example-Data/main/Spatial-ATAC/coord.rds"
   # Temporary file to store the .rds
@@ -655,7 +655,7 @@ read_spatial_atac = function(){
 
 #' Read Spatial Long-Read RNA-Seq Data
 #'
-#' Loads spatial long-read RNA-seq data from a GitHub repository. Includes coordinates,
+#' Loads spatial long-read RNA-seq data from our public GitHub repository. Includes coordinates,
 #' region annotations, deconvolution, library sizes, and expression matrices for genes and isoforms.
 #'
 #' @return A list containing:
@@ -670,12 +670,12 @@ read_spatial_atac = function(){
 #'
 #' @examples
 #' \dontrun{
-#' long_read_data <- read_spatial_long_read()
+#' long_read_data <- read_example_spatial_olfactory_bulb_long_read_data()
 #' str(long_read_data)
 #' }
 #'
 #' @export
-read_spatial_long_read = function(){
+read_example_spatial_olfactory_bulb_long_read_data = function(){
   #read coordinates
   url <- "https://raw.githubusercontent.com/kaishumason/SpotGLM-Example-Data/main/Spatial-Long-Read/coords.rds"
   # Temporary file to store the .rds
