@@ -1,8 +1,8 @@
 ---
-title: "Spatial Long-Read Isoform Switching Workflow"
+title: "Spatial Long-Read Isoform Analysis"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Spatial Long-Read Analysis}
+  %\VignetteIndexEntry{Spatial Long-Read Isoform Analysis}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

@@ -6,7 +6,7 @@ mixed-cell composition inherent to spatial barcoding technologies.
 
 SpotGLM is integrated with the [SPARROW package](https://kaishumason.github.io/SPARROW/), making it **fast and ultra-scalable** for data sets with millions of spots.
 
-![](man/figures/schematic.png)
+![Schematic of SpotGLM Analysis](man/figures/schematic.png)
 
 ## Installation
 
@@ -28,13 +28,14 @@ devtools::install_github("kaishumason/SPARROW") # install
 
 Please follow these tutorials to get started on your data:
 
-[Using SpotGLM with SPARROW on Visium HD (kidney example)](articles/Vignette_VisiumHD_Mouse_Kidney_analysis.html)
+[Using SpotGLM with SPARROW on Visium HD](articles/Vignette_VisiumHD_Mouse_Kidney_analysis.html)
 
-[Using SpotGLM on Visium data (colorectal cancer example)](articles/Visium_analysis.html)
+[Using SpotGLM on Visium data](articles/Visium_analysis.html)
 
-[SpotGLM for isoform switching analysis on spatial long read data (olfactory bulb example)](articles/Spatial_Long_Read_analysis.html)
+[SpotGLM for isoform switching analysis on spatial long read data](articles/Spatial_Long_Read_analysis.html)
 
-[SpotGLM for spatial ATAC analysis (mouse brain example)](articles/Spatial_ATAC_analysis.html)
+[SpotGLM for spatial ATAC analysis](articles/Spatial_ATAC_analysis.html)
 
-Here is a more technical tutorial that applies spotGLM to simulation data.  By simulating the data yourself, you can gain understanding of the underlying model:
+Here is a more technical tutorial that applies spotGLM to simulation data.  By working with simulation data, you can see the generative model used in spotGLM:
+
 [Demonstration of SpotGLM on simulation data](articles/Intro_to_SpotGLM.html)

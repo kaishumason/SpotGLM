@@ -1,5 +1,5 @@
 ---
-title: "Spatial ATAC Workflow"
+title: "Spatial ATAC Analysis"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Spatial ATAC Analysis}

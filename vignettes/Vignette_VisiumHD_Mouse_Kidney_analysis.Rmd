@@ -1,8 +1,8 @@
 ---
-title: "Visium HD Workflow - SpotGLM - SPARROW"
+title: "Visium HD Workflow - SpotGLM w/ SPARROW"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Visium_analysis}
+  %\VignetteIndexEntry{Visium HD Workflow - SpotGLM w/ SPARROW}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -40,16 +40,9 @@ SpotGLM requires three input matrices"
 + **Spot-by-cell type compositions matrix**: This is the spot deconvolution result, giving the contribution of each cell type to each spot.  We will use [RCTD](https://www.nature.com/articles/s41587-021-00830-w) as an example, but you can use any other method.  Deconvolution can take *a few hours*, so we provide this matrix, and you can skip this step for now.   
 + **Spot-by-niche covariate matrix**: This contains the spatial niche covariates for the right-hand-side of the spotGLM regression.  For this analysis, we will use kidney anatomical regions defined via clustering of histological image features extracted from the same-slide H&E image. This feature extraction and clustering takes *a few hours with GPU*, so we provide this matrix for you to use.  You can define spatial niches/domains/neighborhoods using other methods as well.  
 
-
-
-<<<<<<< HEAD
 If you would like to try these pre-processing steps yourself, you can use the script we provide below.  Otherwise, skip directly to the next section.
-=======
-We need to input files for spotGLM: celltype deconvolution matrix, and spatial niche matrix. All data required for deconvolution and spatial niches can be found here: https://www.dropbox.com/scl/fo/qi0ij5n2sdo7zz68tajfa/AEe4nXVqldBGK1KBmh7nU8c?rlkey=208dfsao16jvq45uvj0evazpz&dl=0 
->>>>>>> 8e131e327d7d47f8becc4edaf93c0addf4ad28d7
 
 
-<<<<<<< HEAD
 <details>  <summary>**Pre-processing script for preparing the data matrices.** </summary>
 We load some libraries used specifically by RCTD.
 ```
@@ -63,8 +56,6 @@ library(Seurat)
 
 As described in our paper, we bin the Visium HD data into 8 micron squares.  This alleviates the extreme sparsity in the data.  You can download the binned data from **here**, as well as the cell type reference file for deconvolution using RCTD.  Simply download the zip file, extract all files into a folder named "mouse_kidney_data_input", and put this foler into the root directory where you are doing the analysis.  
 
-=======
->>>>>>> 8e131e327d7d47f8becc4edaf93c0addf4ad28d7
 ```
 localdir <- "mouse_kidney_data_input/data/binned_outputs/square_008um"
 output_dir <- "mouse_kidney_data_input/preprocessed_data/"
@@ -123,33 +114,6 @@ count <- data@assays$Spatial$counts
 count <- count[, rownames(deconv_df)]
 saveRDS(count, file.path(output_dir, "count_matrix.rds"))
 ```
-<<<<<<< HEAD
-=======
-
-- Spatial niches are defined using kidney anatomical regions. We identified spatial domains and manually annotated kidney anatomical regions from histological image features using iSTAR (Zhang, D. et al.). This file is directly provided for spotGLM analysis. Each spot is assigned with a dummy variable of kidney anatomical region.
-
-```
-regions_df <- read.csv(file.path("mouse_kidney_data_input/data/kidney_region_annotation/istar_output/nclusters10-hist/", "spots_he_cluster.csv"), row.names = 1)
-regions_df = regions_df[regions_df$he_clusters_region != "Region0",]
-regions <- regions_df$he_clusters_region
-names(regions) <- rownames(regions_df)
-EN = as.matrix(dummy_cols(regions)[, -c(1)])
-saveRDS(EN, "EN_covariate_matrix.rds")
-```
-
-
-# Load Data
-
-We first load the data and prepare for spotGLM.
-
-<details>
-  <summary>Input</summary>
-  
-+ `deconv`: The deconvolution of each spot. Of dimension number of spots by cell types
-+ `EN`: The spatial niche vector (in this case, mouse kidney regions) for each spot. Of dimension number of spots by kidney regions
-+ `coords`: Coordinate matrix. Of dimension number of spots by 2
-+ `counts`: The counts matrix for spot-by-gene matrix
->>>>>>> 8e131e327d7d47f8becc4edaf93c0addf4ad28d7
 </details>
 
 
@@ -234,26 +198,6 @@ The deconvolved cell type proportions sometimes have cell types contributing ver
 ```
 deconv[deconv < 0.1] = 0
 deconv = t(apply(deconv,1,function(x){x/sum(x)}))
-<<<<<<< HEAD
-=======
-
-# Get spot library sizes
-spot_size = rowSums(counts)
-
-# Get niche-DE covariates
-CT_weights = rep(1,ncol(deconv))
-deconv_weighted = t(apply(deconv,1,function(x){x*CT_weights}))
-deconv_weighted = t(apply(deconv,1,function(x){x/sum(x)}))
-original_CT = colnames(deconv)
-
-selected_genelist <- readRDS( "test_genes/genelist.rds")
-counts = counts[, genelist]
-
-data = list()
-data$niche <- EN
-data$deconv <- deconv_weighted
-data$counts <- counts
->>>>>>> 8e131e327d7d47f8becc4edaf93c0addf4ad28d7
 ```
 
 SpotGLM is a gene-specific analysis and can be parallelized across genes. For this tutorial, we show spotGLM on a small list of genes, so that the analysis can be completed in a few minutes.  We also provide the parallelization script so that you can run it on the full transcriptome.  
@@ -508,27 +452,11 @@ $$ \hbox{normalized count} = \log\left(1+10000\times \frac{\hbox{count}}{\hbox{l
 We didn't have to do this until now, because the SPARROW and SpotGLM package internally accounts for library size in their computations.  For plotting, we need to use the normalized values.
 
 ```
-<<<<<<< HEAD
 counts_data <- data$counts
 total_counts <- colSums(counts_data)
-=======
-gene <- "Igfbp3"
-
-data_sparrow = list()
-data_sparrow$niche <- EN
-data_sparrow$deconv <- deconv_weighted
-data_sparrow$counts <- counts
-data_sparrow$coords <- coords[, c(3:4)]
-
-region_filter <- data_sparrow$niche[, ".data_Cortex"] == 1 | data_sparrow$niche[, ".data_IM"] == 1
-
-counts <- data_sparrow$counts
-total_counts <- colSums(counts)
->>>>>>> 8e131e327d7d47f8becc4edaf93c0addf4ad28d7
 scale_factor <- 1e4
 scaled_counts <- t(t(counts) / total_counts) * scale_factor
 normalized_counts <- log1p(scaled_counts)
-<<<<<<< HEAD
 data$normcounts <- normalized_counts
 ```
 
@@ -541,14 +469,6 @@ region_filter <- data$niche[, ".data_Cortex"] == 1 | data$niche[, ".data_IM"] ==
 gene_expr <- data$normcounts[region_filter, gene]
 cellprop_score <- data$deconv[region_filter, "Endothelial cells" ]
 region_label <- ifelse(data$niche[region_filter, ".data_Cortex"] == 1, "Cortex", "IM")
-=======
-data_sparrow$normcounts <- normalized_counts
-
-# gene expression 
-gene_expr <- data_sparrow$normcounts[region_filter, gene]
-cellprop_score <- data_sparrow$deconv[region_filter, "Endothelial cells" ]
-region_label <- ifelse(data_sparrow$niche[region_filter, ".data_Cortex"] == 1, "Cortex", "IM")
->>>>>>> 8e131e327d7d47f8becc4edaf93c0addf4ad28d7
 
 # Create plotting data frame
 plot_df <- data.frame(

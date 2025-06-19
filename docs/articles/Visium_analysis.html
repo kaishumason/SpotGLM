@@ -5,12 +5,12 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Visium Analysis • spotGLM</title>
+<title>Visium Niche DE Analysis • spotGLM</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Visium Analysis">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Visium Niche DE Analysis">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -35,9 +35,9 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/Intro_to_SpotGLM.html">Intro to SpotGLM</a></li>
     <li><a class="dropdown-item" href="../articles/Spatial_ATAC_analysis.html">Spatial ATAC Analysis</a></li>
-    <li><a class="dropdown-item" href="../articles/Spatial_Long_Read_analysis.html">Spatial Long-Read Analysis</a></li>
-    <li><a class="dropdown-item" href="../articles/Vignette_VisiumHD_Mouse_Kidney_analysis.html">Visium Analysis</a></li>
-    <li><a class="dropdown-item" href="../articles/Visium_analysis.html">Visium Analysis</a></li>
+    <li><a class="dropdown-item" href="../articles/Spatial_Long_Read_analysis.html">Spatial Long-Read Isoform Analysis</a></li>
+    <li><a class="dropdown-item" href="../articles/Vignette_VisiumHD_Mouse_Kidney_analysis.html">Visium HD Workflow - SpotGLM w/ SPARROW</a></li>
+    <li><a class="dropdown-item" href="../articles/Visium_analysis.html">Visium Niche DE Analysis</a></li>
   </ul>
 </li>
       </ul>
@@ -59,7 +59,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>Visium Analysis</h1>
+      <h1>Visium Niche DE Analysis</h1>
             
       
       <small class="dont-index">Source: <a href="https://github.com/kaishumason/spotGLM/blob/HEAD/vignettes/Visium_analysis.Rmd"><code>vignettes/Visium_analysis.Rmd</code></a></small>
@@ -68,37 +68,33 @@
 
     
     
-<p>We must load the following packages</p>
-<pre><code><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">spotglm</span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://patchwork.data-imaginist.com" class="external-link">patchwork</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span></code></pre>
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
-<p>In this vignette we will go through a typical analysis using spotGLM
-on a Visium dataset. The dataset comes from a liver colorectal cancer
-patient. In the dataset, we identify 6 major cell types, hepatocytes,
-macrophages/myeloid, fibroblasts/stromal, and two subclones of the tumor
-found via <a href="https://www.biorxiv.org/content/10.1101/2022.07.05.498882v2" class="external-link">clonalscope</a>.
-For each spot we summarize its neighborhood/niche by computing a
-weighted sum of deconvolutions with closer spots having more weight. We
-will then fit a spotGLM to identify cell type specific
-niche-differential genes.</p>
+<p>This vignette demonstrates a full analysis workflow using SpotGLM for
+cell type-specific niche differential expression analysis on a Visium
+data set. The dataset comes from a colorectal cancer patient, <a href="https://aacrjournals.org/cancerdiscovery/article/12/1/134/675646/Spatiotemporal-Immune-Landscape-of-Colorectal" class="external-link">initially
+published in this study</a>. We have already identified 3 normal cell
+types: hepatocytes, myeloid cells, and stromal cells, as well as two
+subclones of the tumor found via <a href="https://www.biorxiv.org/content/10.1101/2022.07.05.498882v2" class="external-link">Clonalscope</a>.
+For each spot, we summarize its cellular niche by computing a weighted
+sum of cell type concentrations of the spots surrounding it, with closer
+spots weighted higher. We will then use spotGLM to identify genes that
+display significant niche associations in a cell type specific way.</p>
 <div class="section level3">
-<h3 id="load-data">Load Data<a class="anchor" aria-label="anchor" href="#load-data"></a>
+<h3 id="setup-and-data-loading">Setup and data loading<a class="anchor" aria-label="anchor" href="#setup-and-data-loading"></a>
 </h3>
-<p>We first load the data.</p>
-</div>
-</div>
-<div class="section level2">
-<h2 id="reading-in-data">Reading in Data<a class="anchor" aria-label="anchor" href="#reading-in-data"></a>
-</h2>
-<p>First we read in the merfish data using the function ‘read merfish’.
-This functions returns a list with the following</p>
-<details><summary>
-Output
-</summary><ul>
+<p>First, load the following packages needed for plotting and data table
+manipulation:</p>
+<pre><code><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/kaishumason/spotGLM">spotGLM</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span> <span class="co"># for plotting</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span> <span class="co"># for manipulating data tables</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://patchwork.data-imaginist.com" class="external-link">patchwork</a></span><span class="op">)</span> <span class="co"># for qqplots side-by-side</span></span></code></pre>
+<p>Next, read in the colorectal cancer data with the
+<code><a href="https://rdrr.io/pkg/spotGLM/man/read_example_visium_colorectal_cancer_data.html" class="external-link">read_example_visium_colorectal_cancer_data()</a></code> function. The
+function reads from the public repository where this data is stored, and
+returns a list with the following fields:</p>
+<ul>
 <li>
 <code>coords</code>: Coordinate matrix. Of dimension 3826 by 2</li>
 <li>
@@ -113,20 +109,23 @@ Output
 <li>
 <code>library size</code>: The library size of each spot. A vector
 of length 3826</li>
-</ul></details><pre><code><span><span class="va">data</span> <span class="op">=</span> <span class="fu">spotglm</span><span class="fu">::</span><span class="fu">read_visium</span><span class="op">(</span><span class="op">)</span></span></code></pre>
+</ul>
+<pre><code><span><span class="va">data</span> <span class="op">=</span> <span class="fu">spotGLM</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/spotGLM/man/read_example_visium_colorectal_cancer_data.html" class="external-link">read_example_visium_colorectal_cancer_data</a></span><span class="op">(</span><span class="op">)</span></span></code></pre>
+</div>
 <div class="section level3">
-<h3 id="example-of-covariate">Example of Covariate<a class="anchor" aria-label="anchor" href="#example-of-covariate"></a>
+<h3 id="plotting-the-data">Plotting the data<a class="anchor" aria-label="anchor" href="#plotting-the-data"></a>
 </h3>
-<p>We summarize each spot’s niche into a vector of length
+<p>As mentioned, each spot’s spatial niche is encoded by a vector of
+length
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math>
 where
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math>
-is the number of cell types in the sample. This covariate is called an
-effective niche.Without going into too much detail, the larger the
-covariate, the more the corresponding cell type is in the neighborhood
-of that spot. For example, we see that the tumor subclone 1 niche
-covariate is high in regions where the tumor deconvolution is also
-high.</p>
+is the number of cell types in the sample. This vector becomes the
+covariate in our spotGLM model. The larger this value for a given cell
+type, the higher the concentration of that cell type in the neighborhood
+of the spot. For example, to get a feel for this data, let’s plot the
+niche covariate term for tumor subclone 1, and contrast it with the
+tumor cell concentration in each spot:</p>
 <pre><code><span><span class="co"># Prepare data for plotting</span></span>
 <span><span class="va">plot_df_deconv</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>  x <span class="op">=</span> <span class="va">data</span><span class="op">$</span><span class="va">coords</span><span class="op">[</span>, <span class="fl">1</span><span class="op">]</span>,</span>
@@ -142,25 +141,28 @@ high.</p>
 <span></span>
 <span><span class="co"># Plot 1: deconv</span></span>
 <span><span class="va">p1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">plot_df_deconv</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">x</span>, y <span class="op">=</span> <span class="va">y</span>, color <span class="op">=</span> <span class="va">subclone_1</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">2</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">1</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_color_viridis_c</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>title <span class="op">=</span> <span class="st">"Deconvolution - Subclone 1"</span>, color <span class="op">=</span> <span class="st">"Subclone 1"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Plot 2: niche</span></span>
 <span><span class="va">p2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">plot_df_niche</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">x</span>, y <span class="op">=</span> <span class="va">y</span>, color <span class="op">=</span> <span class="va">subclone_1</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">2</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">1</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_color_viridis_c</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>title <span class="op">=</span> <span class="st">"Niche Covariate - Subclone 1"</span>, color <span class="op">=</span> <span class="st">"Subclone 1"</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Display side by side</span></span></code></pre>
-<pre><code><span><span class="va">p1</span> <span class="op">+</span> <span class="va">p2</span></span></code></pre>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span></span></code></pre>
+<p>Display side by side:</p>
+<pre><code><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggsave.html" class="external-link">ggsave</a></span><span class="op">(</span><span class="st">"colorectal_tumor_subclone_side-by-side.png"</span>, plot<span class="op">=</span><span class="va">p1</span><span class="op">+</span><span class="va">p2</span>, width<span class="op">=</span><span class="fl">12</span>, height<span class="op">=</span><span class="fl">6</span>, dpi<span class="op">=</span><span class="fl">300</span><span class="op">)</span></span></code></pre>
+<p><img src="../reference/figures/colorectal_tumor_subclone_side-by-side.png" alt="Tumor subclone map" style="width:100%;"></p>
+<p>we see that the tumor subclone 1 niche covariate is high in regions
+where the tumor deconvolution is also high.</p>
 </div>
 <div class="section level3">
-<h3 id="perform-spotglm-approx-10-minutes">Perform SpotGLM (Approx 10 minutes)<a class="anchor" aria-label="anchor" href="#perform-spotglm-approx-10-minutes"></a>
+<h3 id="spotglm-model-details">SpotGLM model details<a class="anchor" aria-label="anchor" href="#spotglm-model-details"></a>
 </h3>
-<p>We now fit our spotGLM model. Let
+<p>We describe here the SpotGLM model that we will use for this data.
+This model is also described in our paper. Let
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>X</mi><annotation encoding="application/x-tex">X</annotation></semantics></math>
 be the the covariate matrix where the
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>th
@@ -213,34 +215,55 @@ in spot
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>s</mi><annotation encoding="application/x-tex">s</annotation></semantics></math>.
 This model can be fit using a spotGLM. to do this we use the “run model”
 function. This function takes several arguments, the most important of
-which are below This model can be fit using a <code>spotGLM</code>. To
-do this, we use the <code><a href="../reference/run_model.html">run_model()</a></code> function.</p>
+which are below.</p>
+</div>
+<div class="section level3">
+<h3 id="fitting-the-spotglm-model-10-minutes">Fitting the SpotGLM model (~ 10 minutes)<a class="anchor" aria-label="anchor" href="#fitting-the-spotglm-model-10-minutes"></a>
+</h3>
+<p>To detect cell type-specific niche-associated genes, we run SpotGLM
+in two steps. First, we use the <code><a href="../reference/run_model.html">run_model()</a></code> function to
+estimate the
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mi>β</mi><mi>g</mi><mi>t</mi></msubsup><annotation encoding="application/x-tex">\beta_g^t</annotation></semantics></math>
+parameters for all genes, which capture the cell type-specific niche
+associations. Then, we use the <code>compute_significance</code>
+function to identify the significant associations. Running
+<code><a href="../reference/run_model.html">run_model()</a></code> is the time consuming step, and will take 20
+minutes on the 2000 genes that we have after filtering. However, this
+step can be parallelized across genes. We first show how to do this
+without parallelization, on a small set of genes:</p>
 <pre><code><span><span class="va">num_genes</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">counts</span><span class="op">)</span></span>
-<span><span class="va">res</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/vector.html" class="external-link">vector</a></span><span class="op">(</span><span class="st">"list"</span>,<span class="va">num_genes</span><span class="op">)</span></span>
+<span><span class="va">res</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/vector.html" class="external-link">vector</a></span><span class="op">(</span><span class="st">"list"</span>,<span class="va">num_genes</span><span class="op">)</span> <span class="co"># container for the results</span></span>
 <span><span class="va">t1</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.time.html" class="external-link">Sys.time</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#run spotGLM for each gene</span></span>
 <span><span class="kw">for</span><span class="op">(</span><span class="va">j</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="va">num_genes</span><span class="op">)</span><span class="op">)</span><span class="op">{</span></span>
-<span>  <span class="kw">if</span><span class="op">(</span><span class="va">j</span><span class="op"><a href="https://rdrr.io/r/base/Arithmetic.html" class="external-link">%%</a></span><span class="fl">500</span> <span class="op">==</span> <span class="fl">0</span><span class="op">)</span><span class="op">{</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">j</span><span class="op">)</span></span>
+<span>  <span class="kw">if</span><span class="op">(</span><span class="va">j</span><span class="op"><a href="https://rdrr.io/r/base/Arithmetic.html" class="external-link">%%</a></span><span class="fl">100</span> <span class="op">==</span> <span class="fl">0</span><span class="op">)</span><span class="op">{</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Fitting model for gene "</span>,<span class="va">j</span>,<span class="st">" out of "</span>, <span class="va">num_genes</span>,<span class="st">"\n"</span><span class="op">)</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Sys.time.html" class="external-link">Sys.time</a></span><span class="op">(</span><span class="op">)</span> <span class="op">-</span> <span class="va">t1</span><span class="op">)</span></span>
 <span>  <span class="op">}</span></span>
-<span>  <span class="va">res</span><span class="op">[[</span><span class="va">j</span><span class="op">]</span><span class="op">]</span> <span class="op">=</span> <span class="fu">spotglm</span><span class="fu">::</span><span class="fu">run_model</span><span class="op">(</span>y <span class="op">=</span> <span class="va">data</span><span class="op">$</span><span class="va">counts</span><span class="op">[</span>,<span class="va">j</span><span class="op">]</span>,X <span class="op">=</span> <span class="va">data</span><span class="op">$</span><span class="va">niche</span>, lambda <span class="op">=</span> <span class="va">data</span><span class="op">$</span><span class="va">deconv</span>,</span>
-<span>                             family <span class="op">=</span> <span class="st">"spot poisson"</span>,offset <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">library_size</span><span class="op">)</span>,</span>
-<span>                             initialization <span class="op">=</span> <span class="cn">T</span>,batch_size <span class="op">=</span> <span class="fl">250</span><span class="op">)</span></span>
+<span>  <span class="va">res</span><span class="op">[[</span><span class="va">j</span><span class="op">]</span><span class="op">]</span> <span class="op">=</span> <span class="fu">spotGLM</span><span class="fu">::</span><span class="fu"><a href="../reference/run_model.html">run_model</a></span><span class="op">(</span>y <span class="op">=</span> <span class="va">data</span><span class="op">$</span><span class="va">counts</span><span class="op">[</span>,<span class="va">j</span><span class="op">]</span>,X <span class="op">=</span> <span class="va">data</span><span class="op">$</span><span class="va">niche</span>, lambda <span class="op">=</span> <span class="va">data</span><span class="op">$</span><span class="va">deconv</span>,family <span class="op">=</span> <span class="st">"spot poisson"</span>,offset <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">library_size</span><span class="op">)</span>,initialization <span class="op">=</span> <span class="cn">T</span>,batch_size <span class="op">=</span> <span class="fl">250</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">counts</span><span class="op">)</span></span></code></pre>
-<div class="section level4">
-<h4 id="downstream-analysis-determining-niche-differential-genes">Downstream Analysis: Determining Niche Differential Genes<a class="anchor" aria-label="anchor" href="#downstream-analysis-determining-niche-differential-genes"></a>
-</h4>
-<p>After fitting the spotGLM we can evaluate which genes as (t,t’) niche
-differential. In this case we get pvalues/qvalues for testing if genes
-are (fibroblast,subclone 1) niche differential. We can do this using the
-<code><a href="../reference/compute_significance.html">compute_significance()</a></code> function. We set side = 1 and
-direction = “pos” so that the niche differential genes correspond to
-those that are upregulated in fibroblasts when in the presence of tumor
-subclone 1.</p>
-<pre><code><span><span class="co">#get significant genes</span></span>
-<span><span class="va">sig_genes</span> <span class="op">=</span> <span class="fu"><a href="../reference/compute_significance.html">compute_significance</a></span><span class="op">(</span>input_list <span class="op">=</span> <span class="va">res</span>,cell_type <span class="op">=</span> <span class="st">"stromal"</span>,</span>
+<details><summary><strong>Expand for the code to perform the above on all genes with
+parallelization.</strong>
+</summary></details>
+</div>
+<div class="section level3">
+<h3 id="identifying-significant-niche-differential-genes">Identifying significant niche differential genes<a class="anchor" aria-label="anchor" href="#identifying-significant-niche-differential-genes"></a>
+</h3>
+<p>After fitting the spotGLM model, we can evaluate which genes are
+niche-associated. For index cell type <code>i</code> (say, fibroblasts)
+and niche cell type <code>n</code> (say, tumor), a gene is
+<code>(i,n)</code> associated if its expression in cell type
+<code>i</code> is associated with the concentration of cell type
+<code>n</code> in its spatial niche. To identify such genes, we use the
+function <code>compute_significance</code>, with parameter
+<code>cell_type</code> set to the index cell type, and parameter
+<code>effect_name</code> set to the niche cell type.</p>
+<p>For example, let’s focus on genes whose expression in fibroblasts
+depend on the concentration of tumor subclone-1 in its niche. We set
+<code>side=1</code> and <code>direction="pos"</code>, so that we get
+those genes that are <em>upregulated</em> in fibroblasts when tumor
+subclone-1 is present.</p>
+<pre><code><span><span class="va">sig_genes</span> <span class="op">=</span> <span class="fu"><a href="../reference/compute_significance.html">compute_significance</a></span><span class="op">(</span>input_list <span class="op">=</span> <span class="va">res</span>,cell_type <span class="op">=</span> <span class="st">"stromal"</span>,</span>
 <span>                                 effect_name <span class="op">=</span> <span class="st">"subclone_1"</span>,</span>
 <span>                                 beta_name <span class="op">=</span> <span class="st">"beta_estimate"</span>,</span>
 <span>                                 standard_error_name <span class="op">=</span> <span class="st">"standard_error_matrix"</span>,</span>
@@ -249,29 +272,31 @@ subclone 1.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="st">"The following genes are (fibroblast,tumor subclone 1) niche differential"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">sig_genes</span><span class="op">)</span><span class="op">[</span><span class="va">sig_genes</span><span class="op">$</span><span class="va">qval</span> <span class="op">&lt;</span> <span class="fl">0.05</span><span class="op">]</span><span class="op">)</span></span></code></pre>
 </div>
-<div class="section level4">
-<h4 id="downstream-analysis-determining-niche-differential-marker-genes">Downstream Analysis: Determining Niche Differential Marker
-Genes<a class="anchor" aria-label="anchor" href="#downstream-analysis-determining-niche-differential-marker-genes"></a>
-</h4>
+<div class="section level3">
+<h3 id="contrasting-two-niches-for-a-cell-type">Contrasting two niches for a cell type<a class="anchor" aria-label="anchor" href="#contrasting-two-niches-for-a-cell-type"></a>
+</h3>
 <p>We can also perform a contrast test to see if a gene is niche-marker
 gene. A niche marker gene for a cell type
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>t</mi><annotation encoding="application/x-tex">t</annotation></semantics></math>
 is one in which
-<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>β</mi><mrow><msub><mi>t</mi><mn>1</mn></msub><mo>,</mo><mi>g</mi></mrow><mi>t</mi></msubsup><mo>≠</mo><msubsup><mi>β</mi><mrow><msub><mi>t</mi><mn>2</mn></msub><mo>,</mo><mi>g</mi></mrow><mi>t</mi></msubsup></mrow><annotation encoding="application/x-tex">\beta^{t}_{t_1,g} \neq \beta^{t}_{t_2,g}</annotation></semantics></math>
-that is that we can differentiate whether cell type
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>β</mi><mrow><msub><mi>t</mi><mn>1</mn></msub><mo>,</mo><mi>g</mi></mrow><mi>t</mi></msubsup><mo>≠</mo><msubsup><mi>β</mi><mrow><msub><mi>t</mi><mn>2</mn></msub><mo>,</mo><mi>g</mi></mrow><mi>t</mi></msubsup><mi>.</mi></mrow><annotation encoding="application/x-tex">\beta^{t}_{t_1,g} \neq \beta^{t}_{t_2,g}.</annotation></semantics></math>
+If this test rejects, that means we can differentiate whether cell type
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>t</mi><annotation encoding="application/x-tex">t</annotation></semantics></math>
-is near a niche enriched by cell type
+resides in a niche enriched by cell type
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>t</mi><mn>1</mn></msub><annotation encoding="application/x-tex">t_1</annotation></semantics></math>
 or cell type
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>t</mi><mn>2</mn></msub><annotation encoding="application/x-tex">t_2</annotation></semantics></math>
 by looking at its gene expression for gene
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>g</mi><annotation encoding="application/x-tex">g</annotation></semantics></math>.
-We can do this using the <code><a href="../reference/compute_contrast_significance.html">compute_contrast_significance()</a></code>
-function. Here we are finding niche marker genes in fibroblasts when
-near tumor subclone 1 vs tumor subclone 2. We set side = 1 and direction
-= “pos” so that the genes correspond to those that are upregulated in
-fibroblasts when in the presence of tumor subclone 1 vs when near tumor
-subclone 2.</p>
+We can also do this using the
+<code><a href="../reference/compute_contrast_significance.html">compute_contrast_significance()</a></code> function, giving it the
+cell type of interest (<code>cell_type</code>) and the effects to
+contrast(<code>effect_names</code>).</p>
+<p>For example, let’s find niche marker genes in fibroblasts that can
+distinguish between tumor subclone-1 vs tumor subclone-2. We set side =
+1 and direction = “pos” so that the genes with small p-value correspond
+to those that are upregulated in fibroblasts when in the presence of
+tumor subclone-1.</p>
 <pre><code><span><span class="co">#compute contrast test</span></span>
 <span><span class="va">sig_genes</span> <span class="op">=</span> <span class="fu"><a href="../reference/compute_contrast_significance.html">compute_contrast_significance</a></span><span class="op">(</span>input_list <span class="op">=</span> <span class="va">res</span>,</span>
 <span>                                    cell_type <span class="op">=</span> <span class="st">"stromal"</span>,</span>
@@ -284,14 +309,18 @@ subclone 2.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">sig_genes</span><span class="op">)</span><span class="op">[</span><span class="va">sig_genes</span><span class="op">$</span><span class="va">qval</span> <span class="op">&lt;</span> <span class="fl">0.05</span><span class="op">]</span><span class="op">)</span></span></code></pre>
 </div>
+<div class="section level3">
+<h3 id="visualization-of-significant-genes">Visualization of significant genes<a class="anchor" aria-label="anchor" href="#visualization-of-significant-genes"></a>
+</h3>
 <div class="section level4">
-<h4 id="plots">Plots<a class="anchor" aria-label="anchor" href="#plots"></a>
+<h4 id="example-isg15">Example: ISG15<a class="anchor" aria-label="anchor" href="#example-isg15"></a>
 </h4>
-<p>Note that ISG15 is both a (fibroblast,subclone 1) niche differential
-gene as well as a niche marker gene. If we plot the expression of ISG15
-we see this visually. The fibroblasts in the subclone 2 niche express
-much less ISG15 than that in the subclone 1 niche. Additionally, the non
-tumor region (“other) shows very little expression of ISG15.</p>
+<p>Note that ISG15 is both a (fibroblast,subclone-1) niche differential
+gene as well as a niche marker gene for differentiating subclone-1
+versus subclone-2. If we plot the expression of ISG15 we see this
+visually.</p>
+<p>First, threshold the outliers so that they don’t drive the color axes
+in the plots.</p>
 <pre><code><span><span class="va">gene</span> <span class="op">&lt;-</span> <span class="st">"ISG15"</span></span>
 <span></span>
 <span><span class="co"># Expression clipping</span></span>
@@ -302,9 +331,8 @@ tumor region (“other) shows very little expression of ISG15.</p>
 <span><span class="co">#deconvolution clipping</span></span>
 <span><span class="va">deconv_prop</span> <span class="op">=</span> <span class="va">data</span><span class="op">$</span><span class="va">deconv</span><span class="op">[</span>, <span class="st">"stromal"</span><span class="op">]</span></span>
 <span><span class="va">deconv_prop</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">pmax</a></span><span class="op">(</span><span class="va">deconv_prop</span> , <span class="fu"><a href="https://rdrr.io/r/stats/quantile.html" class="external-link">quantile</a></span><span class="op">(</span><span class="va">deconv_prop</span> , <span class="fl">0.01</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">deconv_prop</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">pmin</a></span><span class="op">(</span><span class="va">deconv_prop</span> , <span class="fu"><a href="https://rdrr.io/r/stats/quantile.html" class="external-link">quantile</a></span><span class="op">(</span><span class="va">deconv_prop</span> , <span class="fl">0.99</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># === Plot 1: ISG15 Expression ===</span></span>
+<span><span class="va">deconv_prop</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">pmin</a></span><span class="op">(</span><span class="va">deconv_prop</span> , <span class="fu"><a href="https://rdrr.io/r/stats/quantile.html" class="external-link">quantile</a></span><span class="op">(</span><span class="va">deconv_prop</span> , <span class="fl">0.99</span><span class="op">)</span><span class="op">)</span></span></code></pre>
+<pre><code><span><span class="co"># === Plot 1: ISG15 Expression ===</span></span>
 <span><span class="va">df1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>  x <span class="op">=</span> <span class="va">data</span><span class="op">$</span><span class="va">coords</span><span class="op">[</span>, <span class="fl">1</span><span class="op">]</span>,</span>
 <span>  y <span class="op">=</span> <span class="va">data</span><span class="op">$</span><span class="va">coords</span><span class="op">[</span>, <span class="fl">2</span><span class="op">]</span>,</span>
@@ -312,7 +340,7 @@ tumor region (“other) shows very little expression of ISG15.</p>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">p1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">df1</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">x</span>, y <span class="op">=</span> <span class="va">y</span>, color <span class="op">=</span> <span class="va">gene</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">2</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">1</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_color_viridis_c</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/coord_fixed.html" class="external-link">coord_fixed</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
@@ -324,7 +352,6 @@ tumor region (“other) shows very little expression of ISG15.</p>
 <span><span class="co"># === Plot 2: Majority subclones ===</span></span>
 <span><span class="va">majority_subclone</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">deconv</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/maxCol.html" class="external-link">max.col</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">deconv</span>,</span>
 <span>                                                   ties.method <span class="op">=</span> <span class="st">"first"</span><span class="op">)</span><span class="op">]</span></span>
-<span></span>
 <span><span class="va">df2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>  x <span class="op">=</span> <span class="va">data</span><span class="op">$</span><span class="va">coords</span><span class="op">[</span>, <span class="fl">1</span><span class="op">]</span>,</span>
 <span>  y <span class="op">=</span> <span class="va">data</span><span class="op">$</span><span class="va">coords</span><span class="op">[</span>, <span class="fl">2</span><span class="op">]</span>,</span>
@@ -338,7 +365,7 @@ tumor region (“other) shows very little expression of ISG15.</p>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">p2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">df2</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">x</span>, y <span class="op">=</span> <span class="va">y</span>, color <span class="op">=</span> <span class="va">highlight</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">2</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">1</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_color_manual</a></span><span class="op">(</span></span>
 <span>    values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
 <span>      <span class="st">"subclone_1"</span> <span class="op">=</span> <span class="st">"red"</span>,</span>
@@ -358,19 +385,26 @@ tumor region (“other) shows very little expression of ISG15.</p>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">p3</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">df3</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">x</span>, y <span class="op">=</span> <span class="va">y</span>, color <span class="op">=</span> <span class="va">stromal</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">2</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">1</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_color_viridis_c</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/coord_fixed.html" class="external-link">coord_fixed</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>title <span class="op">=</span> <span class="st">"Stromal Proportion"</span>, color <span class="op">=</span> <span class="st">"Stromal"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># === Combine all plots ===</span></span>
-<span><span class="va">p1</span></span>
-<span><span class="va">p2</span></span>
-<span><span class="va">p3</span></span></code></pre>
-<p>Note that COL4A1 is a (fibroblast,subclone 1) niche differential gene
-but not niche marker gene. If we plot the expression of COL4A1 we see
-this visually.</p>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggsave.html" class="external-link">ggsave</a></span><span class="op">(</span><span class="st">"colorectal_tumor_subclone_ISG15.png"</span>, plot<span class="op">=</span><span class="va">p1</span><span class="op">+</span><span class="va">p2</span><span class="op">+</span><span class="va">p3</span>, width<span class="op">=</span><span class="fl">18</span>, height<span class="op">=</span><span class="fl">6</span>, dpi<span class="op">=</span><span class="fl">300</span><span class="op">)</span></span></code></pre>
+<p><img src="../reference/figures/colorectal_tumor_subclone_ISG15.png" alt="Tumor subclone map" style="width:100%;"></p>
+<p>The fibroblasts in tumor subclone 2 region express much less ISG15
+than those in the subclone 1 region. Additionally, the non tumor region
+(“other) shows very little expression of ISG15.</p>
+</div>
+<div class="section level4">
+<h4 id="example-col4a1">Example: COL4A1<a class="anchor" aria-label="anchor" href="#example-col4a1"></a>
+</h4>
+<p>Next, consider COL4A1, which is a (fibroblast,subclone-1) niche
+differential gene but not significant when we contrast subclone-1 versus
+subclone-2. If we plot the expression of COL4A1 we can also see this
+visually.</p>
 <pre><code><span><span class="va">gene</span> <span class="op">&lt;-</span> <span class="st">"COL4A1"</span></span>
 <span></span>
 <span><span class="co"># Expression clipping</span></span>
@@ -391,7 +425,7 @@ this visually.</p>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">p1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">df1</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">x</span>, y <span class="op">=</span> <span class="va">y</span>, color <span class="op">=</span> <span class="va">gene</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">2</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">1</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_color_viridis_c</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/coord_fixed.html" class="external-link">coord_fixed</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
@@ -417,7 +451,7 @@ this visually.</p>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">p2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">df2</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">x</span>, y <span class="op">=</span> <span class="va">y</span>, color <span class="op">=</span> <span class="va">highlight</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">2</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">1</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_color_manual</a></span><span class="op">(</span></span>
 <span>    values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
 <span>      <span class="st">"subclone_1"</span> <span class="op">=</span> <span class="st">"red"</span>,</span>
@@ -437,16 +471,15 @@ this visually.</p>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">p3</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">df3</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">x</span>, y <span class="op">=</span> <span class="va">y</span>, color <span class="op">=</span> <span class="va">stromal</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">2</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">1</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_color_viridis_c</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/coord_fixed.html" class="external-link">coord_fixed</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>title <span class="op">=</span> <span class="st">"Stromal Proportion"</span>, color <span class="op">=</span> <span class="st">"Stromal"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># === Combine all plots ===</span></span>
-<span><span class="va">p1</span></span>
-<span><span class="va">p2</span></span>
-<span><span class="va">p3</span></span></code></pre>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggsave.html" class="external-link">ggsave</a></span><span class="op">(</span><span class="st">"colorectal_tumor_subclone_COL4A1.png"</span>, plot<span class="op">=</span><span class="va">p1</span><span class="op">+</span><span class="va">p2</span><span class="op">+</span><span class="va">p3</span>, width<span class="op">=</span><span class="fl">18</span>, height<span class="op">=</span><span class="fl">6</span>, dpi<span class="op">=</span><span class="fl">300</span><span class="op">)</span></span></code></pre>
+<p><img src="../reference/figures/colorectal_tumor_subclone_COL4A1.png" alt="Tumor subclone map - COL4A1" style="width:100%;"></p>
 </div>
 </div>
 </div>

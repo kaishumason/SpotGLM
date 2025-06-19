@@ -1,8 +1,8 @@
 ---
-title: "Visium Workflow - Colorectal Cancer"
+title: "Visium Niche DE Analysis"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Visium_analysis}
+  %\VignetteIndexEntry{Visium Niche DE Analysis}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
