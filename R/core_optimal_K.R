@@ -571,6 +571,85 @@ read_example_visium_colorectal_cancer_data = function(){
 
 
 
+#' Read Visium HD Example Data from GitHub
+#'
+#' Downloads and loads Visium HD spatial transcriptomics data from a GitHub repository.
+#' Includes coordinates, deconvolution, effective niche covariates, library sizes, and gene counts.
+#'
+#' @return A list containing:
+#' \describe{
+#'   \item{coords}{Matrix of spatial coordinates.}
+#'   \item{niche}{Effective niche covariate matrix.}
+#'   \item{deconv}{Cell type deconvolution matrix.}
+#'   \item{counts}{Gene expression count matrix.}
+#' }
+#'
+#' @examples
+#' \dontrun{
+#' data <- read_example_visium_hd_kidney_data()
+#' str(data)
+#' }
+#'
+#' @export
+read_example_visium_hd_kidney_data = function(){
+  #read coordinates
+  url <- "https://raw.githubusercontent.com/kaishumason/SpotGLM-Example-Data/main/VisiumHD_mouse_kidney/preprocessed_data/coords.rds"
+  # Temporary file to store the .rds
+  temp_file <- tempfile(fileext = ".rds")
+  
+  # Download the file (use mode = "wb" for binary)
+  download.file(url, destfile = temp_file, mode = "wb")
+  
+  # Read the RDS file
+  coords <- as.matrix(readRDS(temp_file))
+  
+  
+  #read deconvolution
+  url <- "https://raw.githubusercontent.com/kaishumason/SpotGLM-Example-Data/main/VisiumHD_mouse_kidney/preprocessed_data/deconv_matrix.rds"
+  # Temporary file to store the .rds
+  temp_file <- tempfile(fileext = ".rds")
+  
+  # Download the file (use mode = "wb" for binary)
+  download.file(url, destfile = temp_file, mode = "wb")
+  
+  # Read the RDS file
+  deconv <- as.matrix(readRDS(temp_file))
+  
+  
+  
+  #read effective niche
+  url <- "https://raw.githubusercontent.com/kaishumason/SpotGLM-Example-Data/main/VisiumHD_mouse_kidney/preprocessed_data/EN_covariate_matrix.rds"
+  # Temporary file to store the .rds
+  temp_file <- tempfile(fileext = ".rds")
+  
+  # Download the file (use mode = "wb" for binary)
+  download.file(url, destfile = temp_file, mode = "wb")
+  
+  # Read the RDS file
+  niche <- readRDS(temp_file)
+  
+  
+  #get counts
+  data = vector("list",4)
+  for(j in c(1:4)){
+    url <- paste0("https://raw.githubusercontent.com/kaishumason/SpotGLM-Example-Data/main/Visium/counts_",j,".rds")
+    # Temporary file to store the .rds
+    temp_file <- tempfile(fileext = ".rds")
+    
+    # Download the file (use mode = "wb" for binary)
+    download.file(url, destfile = temp_file, mode = "wb")
+    
+    data[[j]] = readRDS(temp_file)
+  }
+  data = do.call(cbind, data)
+  
+  
+  
+  return(list(coords = coords,niche = niche, deconv = deconv, counts = data,library_size = library_size))
+  
+}
+
+
 #' Read Spatial ATAC-Seq Example Data
 #'
 #' Loads spatial ATAC-seq data from a GitHub repository, including coordinates, deconvolution,

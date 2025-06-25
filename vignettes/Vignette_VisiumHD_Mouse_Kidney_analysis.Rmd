@@ -123,7 +123,7 @@ saveRDS(count, file.path(output_dir, "count_matrix.rds"))
 We first load the data and prepare for spotGLM, defining the following variables:
   
 + `deconv`: The deconvolution of each spot, of dimension number of spots by cell types
-+ `EN`: The spatial niche vector (in this case, mouse kidney regions) for each spot, of dimension number of spots by kidney regions
++ `niche`: The spatial niche vector (in this case, mouse kidney regions) for each spot, of dimension number of spots by kidney regions
 + `coords`: Coordinate matrix, of dimension number of spots by 2
 + `counts`: The counts matrix for spot-by-gene matrix, of dimension number of spots by number of genes
 
@@ -131,22 +131,22 @@ We first load the data and prepare for spotGLM, defining the following variables
 ```
 data_dir <- "mouse_kidney_data_input/preprocessed_data/"
 deconv = readRDS(file.path(data_dir,"deconv_matrix.rds"))
-EN = readRDS(file.path(data_dir,"EN_covariate_matrix.rds"))
+niche = readRDS(file.path(data_dir,"EN_covariate_matrix.rds"))
 coords = readRDS(file.path(data_dir, "coords.rds"))[,2:5]
 counts = t(readRDS(file.path(data_dir,"count_matrix.rds")))
 ```
 
-For this data, some of the spots didn't have anatomical annotation.  Thus, we keep only those spots that are in the `EN` environment covariate matrix.  
+For this data, some of the spots didn't have anatomical annotation.  Thus, we keep only those spots that are in the `niche` environment covariate matrix.  
 
 ```
-coords = coords[rownames(EN), ]
-counts = counts[rownames(EN), ]
-deconv = deconv[rownames(EN), ]
+coords = coords[rownames(niche), ]
+counts = counts[rownames(niche), ]
+deconv = deconv[rownames(niche), ]
 ```
-To get a sense of what you are working with, you can now visualize this data.  First, let's plot the spatial niches (the `EN` spatial covariate matrix).
+To get a sense of what you are working with, you can now visualize this data.  First, let's plot the spatial niches (the `niche` spatial covariate matrix).
 ```
 # Convert one-hot matrix to factor of region names
-region_vector <- factor(colnames(EN)[max.col(EN, ties.method = "first")],levels = colnames(EN))
+region_vector <- factor(colnames(niche)[max.col(niche, ties.method = "first")],levels = colnames(niche))
 
 # Create plotting data frame
 plot_df <- data.frame(
@@ -212,7 +212,7 @@ counts = counts[, genelist]
 Finally, put the gene counts, cell type proportions, and niche environment all into one `list` object for passing to our functions.
 
 ```
-data = list(niche=EN, deconv=deconv, counts=counts, coords=coords)
+data = list(niche=niche, deconv=deconv, counts=counts, coords=coords)
 ```
 Next, we use SPARROW to reduce the data to a smaller size while preserving power for this analysis.  This is optional, and you can skip to the next section if you want to simply run on the full data set.  
 
