@@ -54,7 +54,7 @@ We will also load Seurat, which is used to read in the Visium files and extract 
 library(Seurat)
 ```
 
-As described in our paper, we bin the Visium HD data into 8 micron squares.  This alleviates the extreme sparsity in the data.  You can download the binned data from **here**, as well as the cell type reference file for deconvolution using RCTD.  Simply download the zip file, extract all files into a folder named "mouse_kidney_data_input", and put this foler into the root directory where you are doing the analysis.  
+As described in our paper, we bin the Visium HD data into 8 micron squares.  This alleviates the extreme sparsity in the data.  You can download the binned data from **https://www.dropbox.com/scl/fi/836wro0hjuhk1minfroov/mouse_kidney_data_input.zip?rlkey=gq2j8vwj1t91p1mm09dzhjt6i&dl=0**, as well as the cell type reference file for deconvolution using RCTD.  Simply download the zip file, extract all files into a folder named "mouse_kidney_data_input", and put this foler into the root directory where you are doing the analysis.  
 
 ```
 localdir <- "mouse_kidney_data_input/data/binned_outputs/square_008um"
