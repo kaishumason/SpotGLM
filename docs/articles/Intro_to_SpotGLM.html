@@ -5,11 +5,11 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Intro to SpotGLM • spotGLM</title>
+<title>Intro to SpotGLM • spotglm</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
-<link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.4.2/css/all.min.css" rel="stylesheet">
+<link href="../deps/font-awesome-6.4.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Intro to SpotGLM">
 </head>
 <body>
@@ -18,7 +18,7 @@
 
     <nav class="navbar navbar-expand-lg fixed-top bg-light" data-bs-theme="light" aria-label="Site navigation"><div class="container">
 
-    <a class="navbar-brand me-2" href="../index.html">spotGLM</a>
+    <a class="navbar-brand me-2" href="../index.html">spotglm</a>
 
     <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
 
@@ -75,8 +75,8 @@ allows us to directly compare trade-offs in terms of power and
 specificity.</p>
 <p><em>Let’s get started!</em></p>
 <p>First, load all required packages:</p>
-<pre><code><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">spotglm</span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/kaishumason/SPARROW" class="external-link">sparrow</a></span><span class="op">)</span></span></code></pre>
+<pre><code><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/kaishumason/spotGLM">spotglm</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">sparrow</span><span class="op">)</span></span></code></pre>
 <p>the package <a href="https://kaishumason.github.io/SPARROW/" class="external-link">sparrow</a> allows for
 fast and scalable computation, as detailed in our paper.</p>
 <div class="section level2">
@@ -129,7 +129,7 @@ easier.</p>
 <p>SpotGLM is a method for fitting model of the form</p>
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>Y</mi><mi>s</mi></msub><mo stretchy="false" form="prefix">|</mo><msub><mi>X</mi><mi>s</mi></msub><mo>∼</mo><mi>G</mi></mrow><annotation encoding="application/x-tex">Y_s|X_s \sim G</annotation></semantics></math>
 where</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>𝔼</mi><mrow><mo stretchy="true" form="prefix">[</mo><msub><mi>Y</mi><mi>s</mi></msub><mo stretchy="false" form="prefix">|</mo><msub><mi>X</mi><mi>s</mi></msub><mo stretchy="true" form="postfix">]</mo></mrow><mo>=</mo><munder><mo>∑</mo><mi>t</mi></munder><msub><mi>λ</mi><mrow><mi>s</mi><mo>,</mo><mi>t</mi></mrow></msub><msup><mi>F</mi><mrow><mi>−</mi><mn>1</mn></mrow></msup><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>X</mi><mi>s</mi></msub><msup><mi>β</mi><mi>t</mi></msup><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">\mathbb{E}[Y_{s}|X_{s}] = \sum_{t}\lambda_{s,t}F^{-1}(X_{s}\beta^t)</annotation></semantics></math>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>𝔼</mi><mrow><mo stretchy="true" form="prefix">[</mo><msub><mi>Y</mi><mi>s</mi></msub><mo stretchy="false" form="prefix">|</mo><msub><mi>X</mi><mi>s</mi></msub><mo stretchy="true" form="postfix">]</mo></mrow><mo>=</mo><munder><mo>∑</mo><mi>t</mi></munder><msub><mi>λ</mi><mrow><mi>s</mi><mo>,</mo><mi>t</mi></mrow></msub><msup><mi>F</mi><mrow><mo>−</mo><mn>1</mn></mrow></msup><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>X</mi><mi>s</mi></msub><msup><mi>β</mi><mi>t</mi></msup><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">\mathbb{E}[Y_{s}|X_{s}] = \sum_{t}\lambda_{s,t}F^{-1}(X_{s}\beta^t)</annotation></semantics></math>
 Here
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>t</mi><annotation encoding="application/x-tex">t</annotation></semantics></math>
 index a cell type and
@@ -325,7 +325,7 @@ Output
 <li>
 <code>vcov</code>: The Variance-covariance matrix of the beta
 coefficients</li>
-</ul></details><pre><code><span><span class="va">model</span> <span class="op">=</span> <span class="fu">spotglm</span><span class="fu">::</span><span class="fu">run_model</span><span class="op">(</span>y <span class="op">=</span> <span class="va">data</span><span class="op">$</span><span class="va">y</span>,X <span class="op">=</span> <span class="va">data</span><span class="op">$</span><span class="va">X</span>,lambda <span class="op">=</span> <span class="va">data</span><span class="op">$</span><span class="va">lambda</span>,</span>
+</ul></details><pre><code><span><span class="va">model</span> <span class="op">=</span> <span class="fu">spotglm</span><span class="fu">::</span><span class="fu"><a href="../reference/run_model.html">run_model</a></span><span class="op">(</span>y <span class="op">=</span> <span class="va">data</span><span class="op">$</span><span class="va">y</span>,X <span class="op">=</span> <span class="va">data</span><span class="op">$</span><span class="va">X</span>,lambda <span class="op">=</span> <span class="va">data</span><span class="op">$</span><span class="va">lambda</span>,</span>
 <span>                           family <span class="op">=</span> <span class="st">"spot poisson"</span>,offset<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">1000</span><span class="op">)</span>,</span>
 <span>                          <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">y</span><span class="op">)</span><span class="op">)</span>,n_epochs <span class="op">=</span> <span class="fl">100</span>,batch_size<span class="op">=</span> <span class="fl">500</span>,</span>
 <span>                          learning_rate <span class="op">=</span> <span class="fl">1</span>,max_diff <span class="op">=</span> <span class="fl">1</span><span class="op">-</span><span class="fl">1e-6</span>,</span>
@@ -413,7 +413,7 @@ a list of lists, for this example we use list(model) as an argument.
 Note that if the input list has no names, the names are replaced with
 the prefix “Test”. For easy interpretation of results it is suggested
 that one name the list.</p>
-<pre><code><span><span class="fu">spotglm</span><span class="fu">::</span><span class="fu">compute_significance</span><span class="op">(</span>input_list <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">model</span><span class="op">)</span>,</span>
+<pre><code><span><span class="fu">spotglm</span><span class="fu">::</span><span class="fu"><a href="../reference/compute_significance.html">compute_significance</a></span><span class="op">(</span>input_list <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">model</span><span class="op">)</span>,</span>
 <span>                              cell_type <span class="op">=</span> <span class="st">"cell_type_1"</span>,</span>
 <span>                              <span class="st">"effect_name"</span> <span class="op">=</span> <span class="st">"effect_1"</span>,sided <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></code></pre>
 </div>
@@ -461,7 +461,7 @@ effects(effect 1 &gt; effect 2) or negative?</li>
 </ul></details><p>The output is a matrix with 9 columns; the name of the response, the
 cell type,the effects, the sidedness of the test, the direction of the
 test,the test statistic, the pvalue, and the qvalue.</p>
-<pre><code><span><span class="fu">spotglm</span><span class="fu">::</span><span class="fu">compute_contrast_significance</span><span class="op">(</span>input_list <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">model</span><span class="op">)</span>,</span>
+<pre><code><span><span class="fu">spotglm</span><span class="fu">::</span><span class="fu"><a href="../reference/compute_contrast_significance.html">compute_contrast_significance</a></span><span class="op">(</span>input_list <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">model</span><span class="op">)</span>,</span>
 <span>                                       cell_type <span class="op">=</span> <span class="st">"cell_type_1"</span>,</span>
 <span>                                       <span class="st">"effect_name"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"effect_1"</span>,<span class="st">"effect_2"</span><span class="op">)</span>,</span>
 <span>                                       sided <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></code></pre>
