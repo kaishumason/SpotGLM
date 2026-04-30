@@ -1261,6 +1261,8 @@ run_model = function(y,X,lambda,family = "spot gaussian",beta_0 = NULL,fix_coef 
                                               #weights = weights,min_deconv = min_deconv, min_freq = min_freq)
     #fix_coef = coef_info$fix_coef
     
+  }else if (family == "spot gaussian"){
+    if (is.null(beta_0)) beta_0 <- matrix(0, ncol(X), ncol(lambda))
   }
  
   #Step 3:Run model 
@@ -1345,7 +1347,7 @@ run_model = function(y,X,lambda,family = "spot gaussian",beta_0 = NULL,fix_coef 
 #' @import Matrix
 #' @import MASS
 #' @importFrom LaplacesDemon invlogit logit
-#' @export
+#' @keywords internal
 run_model_parallel_windows = function(Y,X,lambda,family = "spot",beta_0 = NULL,fix_coef = NULL,offset = NULL,
                         initialization = T,G = 0.1,num_cores = 1,
                         CT = NULL, weights = NULL,ct_cov_weights = NULL,
@@ -1492,7 +1494,7 @@ run_model_parallel_windows = function(Y,X,lambda,family = "spot",beta_0 = NULL,f
 #' @import MASS
 #' @importFrom LaplacesDemon invlogit logit
 #' @importFrom pbmcapply pbmclapply
-#' @export
+#' @keywords internal
 run_model_parallel_mac = function(Y, X, lambda, family = "spot gaussian", beta_0 = NULL, fix_coef = NULL,
                                 initialization = T, G = 0.1, num_cores = 1,offset = NULL,
                                  CT = NULL, weights = NULL, ct_cov_weights = NULL,

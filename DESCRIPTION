@@ -26,5 +26,10 @@ Suggests:
 	rmarkdown
 Imports:
 	pbmcapply,
-	promises
+	promises,
+	Matrix, 
+	MASS, 
+	LaplacesDemon, 
+	foreach, 
+	doParallel
 VignetteBuilder: knitr
